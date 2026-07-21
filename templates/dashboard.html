@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XRP/XLM Wallet Manager</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏦</text></svg>">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: monospace; background: #1a1a2e; color: #eee; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        
+        .header { background: #16213e; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
+        .header h1 { color: #00d4ff; }
+        .nav { display: flex; gap: 10px; margin: 10px 0; flex-wrap: wrap; }
+        .nav button { 
+            padding: 10px 15px; 
+            background: #0f3460; 
+            color: #fff; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            font-family: monospace;
+            transition: all 0.3s;
+        }
+        .nav button:hover { background: #1a4f8a; }
+        .nav button.active { background: #00d4ff; color: #000; }
+        #network-info { color: #888; margin-top: 5px; }
+        
+        .crypto-selector { display: flex; gap: 10px; margin: 10px 0; flex-wrap: wrap; align-items: center; }
+        .crypto-selector select { 
+            padding: 8px 12px; 
+            background: #0a0a1a; 
+            border: 1px solid #333; 
+            color: #fff; 
+            border-radius: 5px; 
+            font-family: monospace;
+        }
+        .crypto-selector .badge { padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+        .badge-xrp { background: #0055ff44; color: #00aaff; border: 1px solid #0055ff; }
+        .badge-xlm { background: #00ff5544; color: #00ff88; border: 1px solid #00ff55; }
+        .badge-mainnet { background: #ffaa0044; color: #ffaa00; border: 1px solid #ffaa00; }
+        .badge-testnet { background: #88888844; color: #aaa; border: 1px solid #666; }
+        
+        #dashboard {
+            background: #16213e;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        #dashboard .grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); 
+            gap: 20px; 
+        }
+        #dashboard .card { 
+            background: #0f3460; 
+            padding: 20px; 
+            border-radius: 10px; 
+        }
+        #dashboard .card h3 { color: #00d4ff; margin-bottom: 15px; }
+        
+        .section {
+            display: none;
+            background: #16213e;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .section.visible { display: block; }
+        .section h3 { color: #00d4ff; margin-bottom: 15px; }
+        
+        .info-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #333; flex-wrap: wrap; gap: 5px; }
+        .info-item .label { color: #888; }
+        .info-item .value { color: #00d4ff; font-weight: bold; }
+        .address { font-family: monospace; font-size: 14px; word-break: break-all; }
+        
+        .input-group { display: flex; gap: 10px; margin: 10px 0; flex-wrap: wrap; }
+        .input-group input { 
+            flex: 1; 
+            padding: 10px; 
+            background: #0a0a1a; 
+            border: 1px solid #333; 
+            color: #fff; 
+            border-radius: 5px; 
+            min-width: 150px; 
+        }
+        .input-group select { 
+            padding: 10px; 
+            background: #0a0a1a; 
+            border: 1px solid #333; 
+            color: #fff; 
+            border-radius: 5px; 
+            min-width: 120px; 
+        }
+        
+        .btn { 
+            padding: 10px 20px; 
+            background: #00d4ff; 
+            color: #000; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            font-weight: bold; 
+            font-family: monospace;
+            transition: all 0.3s;
+        }
+        .btn:hover { background: #00a8cc; }
+        .btn-success { background: #2ed573; color: #000; }
+        .btn-success:hover { background: #7bed9f; }
+        .btn-danger { background: #ff4757; color: #fff; }
+        .btn-danger:hover { background: #ff6b81; }
+        .btn-sm { padding: 5px 10px; font-size: 12px; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .message { padding: 10px; border-radius: 5px; margin: 10px 0; display: none; }
+        .message.success { background: #2ed57333; border: 1px solid #2ed573; }
+        .message.error { background: #ff475733; border: 1px solid #ff4757; }
+        .message.info { background: #00d4ff33; border: 1px solid #00d4ff; }
+        
+        .wallets-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+        .wallet-item { 
+            padding: 15px; 
+            background: #0f3460; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            border: 2px solid transparent; 
+        }
+        .wallet-item:hover { border-color: #00d4ff; }
+        .wallet-item.active { border-color: #2ed573; }
+        .wallet-item .name { font-weight: bold; color: #fff; }
+        .wallet-item .address { font-size: 12px; color: #888; word-break: break-all; }
+        .wallet-item .network { font-size: 12px; }
+        .wallet-item .crypto-badge { font-size: 11px; padding: 2px 8px; border-radius: 3px; margin-left: 5px; }
+        .wallet-item .xrp-badge { background: #0055ff44; color: #00aaff; }
+        .wallet-item .xlm-badge { background: #00ff5544; color: #00ff88; }
+        
+        #history-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 800px; }
+        #history-table th { 
+            padding: 10px; 
+            text-align: left; 
+            border-bottom: 2px solid #00d4ff; 
+            background: #0f3460; 
+            color: #00d4ff; 
+        }
+        #history-table td { padding: 8px 10px; border-bottom: 1px solid #1a1a2e; }
+        #history-table tr:hover { background: #0f346033; }
+        .history-container { overflow-x: auto; background: #0a0a1a; border-radius: 8px; padding: 0; }
+        #history-summary { padding: 10px; color: #888; font-size: 12px; text-align: right; }
+        
+        .contact-item { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            padding: 10px; 
+            border-bottom: 1px solid #1a1a2e; 
+            flex-wrap: wrap; 
+            gap: 10px; 
+        }
+        .contact-item:hover { background: #0f346033; }
+        .contact-info { flex: 1; min-width: 200px; }
+        .contact-name { font-weight: bold; color: #00d4ff; }
+        .contact-address { font-size: 12px; color: #888; word-break: break-all; }
+        .contact-note { font-size: 12px; color: #aaa; margin-top: 2px; }
+        .contact-meta { font-size: 11px; color: #555; margin-top: 2px; }
+        .contact-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+        .contacts-container { max-height: 300px; overflow-y: auto; background: #0a0a1a; border-radius: 8px; padding: 10px; }
+        .rubrica-input-group { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; }
+        .rubrica-input-group input { 
+            padding: 10px; 
+            background: #0a0a1a; 
+            border: 1px solid #333; 
+            color: #fff; 
+            border-radius: 5px; 
+        }
+        .rubrica-input-group select { 
+            padding: 10px; 
+            background: #0a0a1a; 
+            border: 1px solid #333; 
+            color: #fff; 
+            border-radius: 5px; 
+        }
+        .rubrica-input-group .name-input { flex: 1; min-width: 120px; }
+        .rubrica-input-group .address-input { flex: 2; min-width: 200px; }
+        .rubrica-input-group .note-input { flex: 1; min-width: 120px; }
+        .empty { color: #888; text-align: center; padding: 20px; }
+        
+        .modal { 
+            display: none; 
+            position: fixed; 
+            top: 0; left: 0; 
+            width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.8); 
+            z-index: 1000; 
+            justify-content: center; 
+            align-items: center; 
+        }
+        .modal-content { 
+            background: #16213e; 
+            padding: 30px; 
+            border-radius: 10px; 
+            max-width: 500px; 
+            width: 90%; 
+            max-height: 90vh; 
+            overflow-y: auto; 
+        }
+        .modal-content h2 { color: #00d4ff; margin-bottom: 20px; }
+        .modal-content .input-group input, 
+        .modal-content .input-group select { width: 100%; }
+        .btn-group { display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap; }
+        .seed-display { 
+            background: #0a0a1a; 
+            padding: 10px; 
+            border-radius: 5px; 
+            margin: 10px 0; 
+            color: #2ed573; 
+            font-size: 12px; 
+            word-break: break-all; 
+            max-height: 100px; 
+            overflow-y: auto; 
+        }
+        .wallet-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+        
+        #send-progress { margin-top: 10px; }
+        .progress-bar-container { width:100%; background:#0a0a1a; border-radius:5px; overflow:hidden; }
+        .progress-bar-fill { width:0%; height:4px; background:#2ed573; transition:width 0.5s; }
+        #send-status { color:#888; font-size:12px; margin-top:5px; }
+        
+        /* 🔑 RICEVI - QR CODE */
+        .ricevi-grid { display: flex; flex-wrap: wrap; gap: 30px; align-items: flex-start; }
+        .ricevi-qr { flex: 1; min-width: 250px; text-align: center; background: #0a0a1a; padding: 20px; border-radius: 10px; }
+        .ricevi-info { flex: 1; min-width: 300px; background: #0f3460; padding: 20px; border-radius: 10px; }
+        .ricevi-explorer { margin-top: 20px; padding: 15px; background: #0a0a1a; border-radius: 10px; }
+        #qrcode-container { min-height: 250px; display: flex; justify-content: center; align-items: center; }
+        #qrcode-image { max-width: 250px; border-radius: 8px; }
+        .btn-group-qr { display: flex; gap: 10px; justify-content: center; margin-top: 15px; flex-wrap: wrap; }
+        
+        .footer { 
+            text-align: center; 
+            padding: 20px; 
+            color: #555; 
+            font-size: 12px; 
+            border-top: 1px solid #1a1a2e; 
+            margin-top: 20px; 
+        }
+        .footer .xrp-icon { color: #00d4ff; }
+        .footer .name { color: #00d4ff; font-weight: bold; }
+        .footer .version { color: #444; }
+        .footer .sub { color: #333; font-size: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- HEADER -->
+        <div class="header">
+            <h1>🏦 <span id="header-crypto">XRP</span> Wallet Manager</h1>
+            
+            <div class="crypto-selector">
+                <span style="color:#888;">🪙 Crypto:</span>
+                <select id="crypto-select" onchange="changeCrypto()">
+                    <option value="XRP">XRP</option>
+                    <option value="XLM">XLM</option>
+                </select>
+                <span style="color:#888;">🌐 Rete:</span>
+                <select id="network-select" onchange="changeNetwork()">
+                    <option value="mainnet">Mainnet</option>
+                    <option value="testnet">Testnet</option>
+                    <option value="devnet">Devnet</option>
+                </select>
+                <span id="crypto-badge" class="badge badge-xrp">XRP</span>
+                <span id="network-badge" class="badge badge-mainnet">MAINNET</span>
+            </div>
+            
+            <div class="nav">
+                <button class="active" onclick="toggleSection('history')">📜 Storico</button>
+                <button onclick="toggleSection('ricevi')">📥 Ricevi</button>
+                <button onclick="toggleSection('rubrica')">📒 Rubrica</button>
+                <button onclick="toggleSection('wallets')">📂 Wallet</button>
+                <button onclick="toggleSection('gestione')">🔧 Gestione</button>
+                <a href="{{ url_for('logout') }}" style="padding: 10px 15px; background: #ff4757; color: #fff; border: none; border-radius: 5px; cursor: pointer; text-decoration: none; font-family: monospace;">🚪 Logout</a>
+            </div>
+            <div id="network-info" style="color: #888; margin-top: 5px;"></div>
+        </div>
+        
+        <div id="message" class="message"></div>
+        
+        <!-- DASHBOARD -->
+        <div id="dashboard">
+            <div class="grid">
+                <div class="card">
+                    <h3>📊 Wallet Info</h3>
+                    <div id="wallet-info">
+                        <div class="info-item"><span class="label">Nome</span><span class="value" id="wallet-name">-</span></div>
+                        <div class="info-item"><span class="label">Indirizzo</span><span class="value address" id="wallet-address">-</span></div>
+                        <div class="info-item"><span class="label">Saldo</span><span class="value" id="wallet-balance">-</span></div>
+                        <div class="info-item"><span class="label">Rete</span><span class="value" id="wallet-network">-</span></div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3 id="send-title">📤 Invia XRP</h3>
+                    <div class="input-group">
+                        <input type="text" id="send-dest" placeholder="Indirizzo o nome contatto">
+                    </div>
+                    <div class="input-group">
+                        <input type="number" id="send-amount" placeholder="Importo" step="0.000001">
+                        <input type="text" id="send-memo" placeholder="Memo (opzionale)">
+                    </div>
+                    <button class="btn btn-success" id="send-btn" onclick="sendPayment()">📤 Invia</button>
+                    <div id="send-progress" style="display:none;">
+                        <div class="progress-bar-container">
+                            <div class="progress-bar-fill" id="send-progress-bar"></div>
+                        </div>
+                        <div id="send-status">⏳ Preparazione transazione...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- SEZIONE RICEVI -->
+        <div id="section-ricevi" class="section">
+            <h3>📥 Ricevi <span id="ricevi-crypto">XRP</span></h3>
+            <div class="ricevi-grid">
+                <div class="ricevi-qr">
+                    <div id="qrcode-container">
+                        <div id="qrcode-loading" style="color: #888;">⏳ Generazione QR Code...</div>
+                        <img id="qrcode-image" src="" alt="QR Code" style="display: none; max-width: 250px; border-radius: 8px;">
+                    </div>
+                    <div class="btn-group-qr">
+                        <button class="btn btn-sm" onclick="downloadQRCode()">💾 Scarica PNG</button>
+                        <button class="btn btn-sm" onclick="copyAddress()">📋 Copia indirizzo</button>
+                    </div>
+                </div>
+                
+                <div class="ricevi-info">
+                    <div class="info-item"><span class="label">📂 Wallet</span><span class="value" id="ricevi-wallet">-</span></div>
+                    <div class="info-item"><span class="label">🪙 Crypto</span><span class="value" id="ricevi-crypto-label">-</span></div>
+                    <div class="info-item"><span class="label">🌐 Rete</span><span class="value" id="ricevi-network">-</span></div>
+                    <div class="info-item"><span class="label">💰 Saldo</span><span class="value" id="ricevi-balance">-</span></div>
+                    <div class="info-item" style="border-bottom: none;">
+                        <span class="label">🏠 Indirizzo</span>
+                        <span class="value address" id="ricevi-address" style="font-size: 12px; word-break: break-all;">-</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="ricevi-explorer">
+                <span style="color: #888;">🔗 Visualizza su esploratore:</span>
+                <a id="ricevi-explorer-link" href="#" target="_blank" style="color: #00d4ff; margin-left: 10px;">Apri</a>
+                <span id="ricevi-explorer-text" style="color: #555; margin-left: 10px; font-size: 12px;"></span>
+            </div>
+        </div>
+        
+        <!-- SEZIONE STORICO -->
+        <div id="section-history" class="section">
+            <h3>📜 Transazioni recenti</h3>
+            <div class="history-container">
+                <table id="history-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Data/Ora</th>
+                            <th>Tipo</th>
+                            <th style="text-align: right;">Importo</th>
+                            <th style="text-align: right;">Fee</th>
+                            <th>Da/A</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-body">
+                        <tr><td colspan="6" style="padding: 20px; text-align: center; color: #888;">Caricamento storico...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div id="history-summary" style="padding: 10px; color: #888; font-size: 12px; text-align: right;"></div>
+        </div>
+        
+        <!-- SEZIONE RUBRICA -->
+        <div id="section-rubrica" class="section">
+            <h3>📒 Rubrica</h3>
+            <div class="rubrica-input-group">
+                <input type="text" id="contact-name" class="name-input" placeholder="Nome contatto">
+                <input type="text" id="contact-address" class="address-input" placeholder="Indirizzo">
+                <select id="contact-crypto">
+                    <option value="XRP">XRP</option>
+                    <option value="XLM">XLM</option>
+                </select>
+                <select id="contact-network">
+                    <option value="mainnet">Mainnet</option>
+                    <option value="testnet">Testnet</option>
+                    <option value="devnet">Devnet</option>
+                </select>
+                <input type="text" id="contact-note" class="note-input" placeholder="Note">
+                <button class="btn btn-success btn-sm" onclick="addContact()">➕ Aggiungi</button>
+                <button class="btn btn-sm" onclick="loadContacts()">🔄 Ricarica</button>
+            </div>
+            <div class="contacts-container" id="contacts-list">
+                <div class="empty">Caricamento contatti...</div>
+            </div>
+        </div>
+        
+        <!-- SEZIONE WALLET -->
+        <div id="section-wallets" class="section">
+            <h3>📂 Wallet disponibili</h3>
+            <div class="wallets-list" id="wallets-list">Caricamento wallet...</div>
+        </div>
+        
+        <!-- SEZIONE GESTIONE -->
+        <div id="section-gestione" class="section">
+            <h3>🔧 Gestione Wallet</h3>
+            <div class="wallet-actions">
+                <button class="btn" onclick="showCreateWallet()">➕ Crea Wallet</button>
+                <button class="btn" onclick="showImportWallet()">📥 Importa Wallet</button>
+                <button class="btn btn-danger" onclick="deleteWallet()">🗑️ Elimina Wallet</button>
+            </div>
+        </div>
+        
+        <!-- FOOTER -->
+        <div class="footer">
+            <span class="xrp-icon">✦</span>
+            <span style="color: #888;">XRP/XLM Wallet Manager</span>
+            <span style="color: #555;"> · </span>
+            <span style="color: #666;">by</span>
+            <span class="name">Arg0net</span>
+            <span style="color: #555;"> · </span>
+            <span class="version">v2.0</span>
+            <span class="xrp-icon">✦</span>
+            <br>
+            <span class="sub">Built with ❤️ on the XRP Ledger &amp; Stellar</span>
+        </div>
+    </div>
+    
+    <!-- MODAL CREA WALLET -->
+    <div id="createWalletModal" class="modal">
+        <div class="modal-content">
+            <h2>➕ Crea Nuovo Wallet</h2>
+            <div class="input-group">
+                <input type="text" id="new-wallet-name" placeholder="Nome wallet">
+            </div>
+            <div class="input-group">
+                <select id="new-wallet-crypto">
+                    <option value="XRP">XRP</option>
+                    <option value="XLM">XLM</option>
+                </select>
+                <select id="new-wallet-network">
+                    <option value="mainnet">🌐 Mainnet</option>
+                    <option value="testnet" selected>🧪 Testnet</option>
+                    <option value="devnet">🛠️ Devnet</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <input type="password" id="new-wallet-passphrase" placeholder="Passphrase (opzionale)">
+            </div>
+            <div id="new-wallet-seed" class="seed-display" style="display:none;"></div>
+            <div class="btn-group">
+                <button class="btn btn-success" onclick="createWallet()">✅ Crea</button>
+                <button class="btn" onclick="closeModal('createWalletModal')">❌ Annulla</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- MODAL IMPORTA WALLET -->
+    <div id="importWalletModal" class="modal">
+        <div class="modal-content">
+            <h2>📥 Importa Wallet</h2>
+            <div class="input-group">
+                <input type="text" id="import-wallet-name" placeholder="Nome wallet">
+            </div>
+            <div class="input-group">
+                <select id="import-wallet-crypto">
+                    <option value="XRP">XRP</option>
+                    <option value="XLM">XLM</option>
+                </select>
+                <select id="import-wallet-network">
+                    <option value="mainnet">🌐 Mainnet</option>
+                    <option value="testnet" selected>🧪 Testnet</option>
+                    <option value="devnet">🛠️ Devnet</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <input type="text" id="import-seed" placeholder="Seed phrase / Private key / Seed XRP / Seed Stellar">
+            </div>
+            <div class="input-group">
+                <input type="password" id="import-passphrase" placeholder="Passphrase (opzionale)">
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-success" onclick="importWallet()">✅ Importa</button>
+                <button class="btn" onclick="closeModal('importWalletModal')">❌ Annulla</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // ============================================================
+        // STATO
+        // ============================================================
+        
+        let activeSection = null;
+        
+        // ============================================================
+        // NAVIGAZIONE
+        // ============================================================
+        
+        function toggleSection(id) {
+            const section = document.getElementById('section-' + id);
+            
+            if (activeSection === id) {
+                section.classList.remove('visible');
+                activeSection = null;
+                document.querySelectorAll('.nav button').forEach(btn => btn.classList.remove('active'));
+                return;
+            }
+            
+            document.querySelectorAll('.section').forEach(el => el.classList.remove('visible'));
+            section.classList.add('visible');
+            activeSection = id;
+            
+            document.querySelectorAll('.nav button').forEach(btn => btn.classList.remove('active'));
+            const activeBtn = document.querySelector(`.nav button[onclick="toggleSection('${id}')"]`);
+            if (activeBtn) activeBtn.classList.add('active');
+            
+            if (id === 'history') loadHistory();
+            if (id === 'ricevi') loadQRCode();
+            if (id === 'rubrica') loadContacts();
+            if (id === 'wallets') loadWallets();
+        }
+        
+        // ============================================================
+        // CRYPTO / NETWORK
+        // ============================================================
+        
+        async function changeCrypto() {
+            const crypto = document.getElementById('crypto-select').value;
+            document.getElementById('header-crypto').textContent = crypto;
+            document.getElementById('send-title').textContent = '📤 Invia ' + crypto;
+            document.getElementById('ricevi-crypto').textContent = crypto;
+            
+            const badge = document.getElementById('crypto-badge');
+            badge.textContent = crypto;
+            badge.className = 'badge ' + (crypto === 'XRP' ? 'badge-xrp' : 'badge-xlm');
+            
+            await fetch('/api/wallet/change_crypto', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ crypto: crypto })
+            });
+            
+            loadInfo();
+            loadHistory();
+            loadWallets();
+        }
+        
+        async function changeNetwork() {
+            const network = document.getElementById('network-select').value;
+            
+            const badge = document.getElementById('network-badge');
+            badge.textContent = network.toUpperCase();
+            badge.className = 'badge ' + (network === 'mainnet' ? 'badge-mainnet' : 'badge-testnet');
+            
+            await fetch('/api/wallet/change_network', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ network: network })
+            });
+            
+            loadInfo();
+            loadHistory();
+            loadWallets();
+        }
+        
+        // ============================================================
+        // UTILITY
+        // ============================================================
+        
+        function showMessage(msg, type='info') {
+            const el = document.getElementById('message');
+            el.textContent = msg;
+            el.className = 'message ' + type;
+            el.style.display = 'block';
+            setTimeout(() => { el.style.display = 'none'; }, 8000);
+        }
+        
+        function showModal(id) {
+            document.getElementById(id).style.display = 'flex';
+        }
+        
+        function closeModal(id) {
+            document.getElementById(id).style.display = 'none';
+        }
+        
+        // ============================================================
+        // WALLET
+        // ============================================================
+        
+        async function loadInfo() {
+            try {
+                const resp = await fetch('/api/wallet/info');
+                const data = await resp.json();
+                if (data.error) {
+                    document.getElementById('wallet-name').textContent = '❌';
+                    document.getElementById('wallet-address').textContent = data.error;
+                    return;
+                }
+                document.getElementById('wallet-name').textContent = data.wallet_name || '-';
+                document.getElementById('wallet-address').textContent = data.address || '-';
+                const symbol = data.crypto || 'XRP';
+                document.getElementById('wallet-balance').textContent = data.balance !== undefined ? data.balance.toFixed(6) + ' ' + symbol : '-';
+                document.getElementById('wallet-network').textContent = data.network ? data.network.toUpperCase() : '-';
+                document.getElementById('network-info').textContent = '🔗 ' + (data.crypto || 'XRP') + ' su ' + (data.network ? data.network.toUpperCase() : '');
+                document.getElementById('header-crypto').textContent = data.crypto || 'XRP';
+                
+                if (data.crypto) document.getElementById('crypto-select').value = data.crypto;
+                if (data.network) document.getElementById('network-select').value = data.network;
+                
+                const badge = document.getElementById('crypto-badge');
+                badge.textContent = data.crypto || 'XRP';
+                badge.className = 'badge ' + ((data.crypto || 'XRP') === 'XRP' ? 'badge-xrp' : 'badge-xlm');
+                
+                const netBadge = document.getElementById('network-badge');
+                netBadge.textContent = (data.network || 'testnet').toUpperCase();
+                netBadge.className = 'badge ' + ((data.network || 'testnet') === 'mainnet' ? 'badge-mainnet' : 'badge-testnet');
+                
+            } catch (e) {
+                showMessage('❌ Errore caricamento info', 'error');
+            }
+        }
+        
+        async function loadWallets() {
+            const list = document.getElementById('wallets-list');
+            list.innerHTML = 'Caricamento...';
+            try {
+                const resp = await fetch('/api/wallet/list');
+                const data = await resp.json();
+                if (data.error) {
+                    list.innerHTML = '❌ ' + data.error;
+                    return;
+                }
+                if (!data.wallets || data.wallets.length === 0) {
+                    list.innerHTML = '❌ Nessun wallet salvato';
+                    return;
+                }
+                list.innerHTML = '';
+                data.wallets.forEach(w => {
+                    const div = document.createElement('div');
+                    div.className = 'wallet-item' + (w.name === data.active ? ' active' : '');
+                    const crypto = w.crypto || 'XRP';
+                    const badgeClass = crypto === 'XRP' ? 'xrp-badge' : 'xlm-badge';
+                    div.innerHTML = `
+                        <div class="name">${w.name} ${w.name === data.active ? '▶' : ''}
+                            <span class="crypto-badge ${badgeClass}">${crypto}</span>
+                        </div>
+                        <div class="address">${w.address || 'N/A'}</div>
+                        <div class="network">Rete: ${(w.network || 'testnet').toUpperCase()}</div>
+                    `;
+                    div.onclick = () => switchWallet(w.name);
+                    list.appendChild(div);
+                });
+            } catch (e) {
+                console.error('Errore loadWallets:', e);
+                list.innerHTML = '❌ Errore caricamento wallet';
+            }
+        }
+        
+        async function switchWallet(name) {
+            try {
+                const resp = await fetch('/api/wallet/switch', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ wallet_name: name })
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    showMessage('✅ ' + data.message, 'success');
+                    if (data.crypto) document.getElementById('crypto-select').value = data.crypto;
+                    if (data.network) document.getElementById('network-select').value = data.network;
+                    loadInfo();
+                    loadWallets();
+                    loadHistory();
+                } else {
+                    showMessage('❌ ' + data.error, 'error');
+                }
+            } catch (e) {
+                showMessage('❌ Errore cambio wallet', 'error');
+            }
+        }
+        
+        // ============================================================
+        // CREA / IMPORTA WALLET
+        // ============================================================
+        
+        function showCreateWallet() {
+            document.getElementById('new-wallet-name').value = '';
+            document.getElementById('new-wallet-passphrase').value = '';
+            document.getElementById('new-wallet-seed').style.display = 'none';
+            showModal('createWalletModal');
+        }
+        
+        async function createWallet() {
+            const name = document.getElementById('new-wallet-name').value.trim();
+            const passphrase = document.getElementById('new-wallet-passphrase').value.trim();
+            const crypto = document.getElementById('new-wallet-crypto').value;
+            const network = document.getElementById('new-wallet-network').value;
+            
+            if (!name) {
+                showMessage('❌ Inserisci un nome per il wallet', 'error');
+                return;
+            }
+            
+            try {
+                const resp = await fetch('/api/wallet/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        name: name, 
+                        passphrase: passphrase, 
+                        network: network,
+                        crypto: crypto
+                    })
+                });
+                const data = await resp.json();
+                
+                if (data.success) {
+                    const seedEl = document.getElementById('new-wallet-seed');
+                    seedEl.textContent = '📝 Seed phrase: ' + data.seed_phrase;
+                    seedEl.style.display = 'block';
+                    showMessage('✅ ' + data.message + ' su ' + network.toUpperCase(), 'success');
+                    setTimeout(() => {
+                        closeModal('createWalletModal');
+                        loadWallets();
+                        loadInfo();
+                    }, 3000);
+                } else {
+                    showMessage('❌ ' + data.error, 'error');
+                }
+            } catch (e) {
+                showMessage('❌ Errore creazione wallet', 'error');
+            }
+        }
+        
+        function showImportWallet() {
+            document.getElementById('import-wallet-name').value = '';
+            document.getElementById('import-seed').value = '';
+            document.getElementById('import-passphrase').value = '';
+            showModal('importWalletModal');
+        }
+        
+        async function importWallet() {
+            const name = document.getElementById('import-wallet-name').value.trim();
+            const seed = document.getElementById('import-seed').value.trim();
+            const passphrase = document.getElementById('import-passphrase').value.trim();
+            const crypto = document.getElementById('import-wallet-crypto').value;
+            const network = document.getElementById('import-wallet-network').value;
+            
+            if (!name || !seed) {
+                showMessage('❌ Inserisci nome e seed', 'error');
+                return;
+            }
+            
+            try {
+                const resp = await fetch('/api/wallet/import', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        name: name, 
+                        seed_input: seed, 
+                        passphrase: passphrase,
+                        network: network,
+                        crypto: crypto
+                    })
+                });
+                const data = await resp.json();
+                
+                if (data.success) {
+                    showMessage('✅ ' + data.message + ' su ' + network.toUpperCase(), 'success');
+                    closeModal('importWalletModal');
+                    loadWallets();
+                    loadInfo();
+                } else {
+                    showMessage('❌ ' + data.error, 'error');
+                }
+            } catch (e) {
+                showMessage('❌ Errore importazione wallet', 'error');
+            }
+        }
+        
+        async function deleteWallet() {
+            const active = document.getElementById('wallet-name').textContent;
+            if (!active || active === '-') {
+                showMessage('❌ Nessun wallet attivo da eliminare', 'error');
+                return;
+            }
+            
+            if (!confirm(`⚠️ Eliminare il wallet '${active}'?`)) {
+                return;
+            }
+            
+            try {
+                const resp = await fetch('/api/wallet/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: active })
+                });
+                const data = await resp.json();
+                
+                if (data.success) {
+                    showMessage('✅ ' + data.message, 'success');
+                    loadWallets();
+                    loadInfo();
+                } else {
+                    showMessage('❌ ' + data.error, 'error');
+                }
+            } catch (e) {
+                showMessage('❌ Errore eliminazione wallet', 'error');
+            }
+        }
+        
+        // ============================================================
+        // QR CODE - RICEVI
+        // ============================================================
+        
+        async function loadQRCode() {
+            const loading = document.getElementById('qrcode-loading');
+            const image = document.getElementById('qrcode-image');
+            
+            loading.style.display = 'block';
+            image.style.display = 'none';
+            
+            try {
+                const resp = await fetch('/api/wallet/qrcode');
+                const data = await resp.json();
+                
+                if (data.error) {
+                    loading.textContent = '❌ ' + data.error;
+                    return;
+                }
+                
+                image.src = data.qrcode;
+                image.style.display = 'block';
+                loading.style.display = 'none';
+                
+                document.getElementById('ricevi-wallet').textContent = data.wallet_name || '-';
+                document.getElementById('ricevi-crypto-label').textContent = data.crypto || 'XRP';
+                document.getElementById('ricevi-crypto').textContent = data.crypto || 'XRP';
+                document.getElementById('ricevi-network').textContent = (data.network || 'testnet').toUpperCase();
+                document.getElementById('ricevi-balance').textContent = (data.balance || 0).toFixed(6) + ' ' + (data.crypto || 'XRP');
+                document.getElementById('ricevi-address').textContent = data.address || '-';
+                
+                const network = data.network || 'testnet';
+                const crypto = data.crypto || 'XRP';
+                let explorerUrl = '';
+                let explorerName = '';
+                
+                if (crypto === 'XRP') {
+                    if (network === 'mainnet') {
+                        explorerUrl = 'https://xrpscan.com/account/';
+                        explorerName = 'XRPScan';
+                    } else {
+                        explorerUrl = 'https://testnet.xrpl.org/accounts/';
+                        explorerName = 'XRPL Testnet';
+                    }
+                } else {
+                    if (network === 'mainnet') {
+                        explorerUrl = 'https://stellar.expert/explorer/public/account/';
+                        explorerName = 'Stellar Expert';
+                    } else {
+                        explorerUrl = 'https://stellar.expert/explorer/testnet/account/';
+                        explorerName = 'Stellar Expert Testnet';
+                    }
+                }
+                
+                const link = document.getElementById('ricevi-explorer-link');
+                link.href = explorerUrl + data.address;
+                link.textContent = '🔗 ' + explorerName;
+                document.getElementById('ricevi-explorer-text').textContent = data.address;
+                
+            } catch (e) {
+                loading.textContent = '❌ Errore: ' + e.message;
+                console.error('Errore QR Code:', e);
+            }
+        }
+        
+        function downloadQRCode() {
+            const image = document.getElementById('qrcode-image');
+            if (image.src && image.src !== '') {
+                window.location.href = '/api/wallet/qrcode_download';
+            } else {
+                showMessage('❌ QR Code non disponibile', 'error');
+            }
+        }
+        
+        function copyAddress() {
+            const address = document.getElementById('ricevi-address').textContent;
+            if (address && address !== '-') {
+                navigator.clipboard.writeText(address).then(() => {
+                    showMessage('✅ Indirizzo copiato negli appunti!', 'success');
+                }).catch(() => {
+                    const textarea = document.createElement('textarea');
+                    textarea.value = address;
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textarea);
+                    showMessage('✅ Indirizzo copiato negli appunti!', 'success');
+                });
+            }
+        }
+        
+        // ============================================================
+        // STORICO
+        // ============================================================
+        
+        async function loadHistory() {
+            const tbody = document.getElementById('history-body');
+            const summary = document.getElementById('history-summary');
+            tbody.innerHTML = '<tr><td colspan="6" style="padding: 20px; text-align: center; color: #888;">⏳ Caricamento...</td></tr>';
+            
+            try {
+                const resp = await fetch('/api/wallet/history');
+                const data = await resp.json();
+                
+                if (data.error) {
+                    tbody.innerHTML = `<tr><td colspan="6" style="padding: 20px; text-align: center; color: #ff4757;">❌ ${data.error}</td></tr>`;
+                    return;
+                }
+                
+                const transactions = data.transactions || [];
+                
+                if (transactions.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="padding: 20px; text-align: center; color: #888;">📭 Nessuna transazione trovata</td></tr>';
+                } else {
+                    tbody.innerHTML = transactions.map(tx => {
+                        const isIncoming = tx.type === 'RICEVUTO';
+                        const isOutgoing = tx.type === 'INVIATO';
+                        const color = isIncoming ? '#2ed573' : (isOutgoing ? '#ff6b81' : '#ffd93d');
+                        const icon = isIncoming ? '⬇️' : (isOutgoing ? '⬆️' : '🔄');
+                        return `<tr>
+                            <td>${tx.index || '-'}</td>
+                            <td style="white-space: nowrap;">${tx.date || '-'}</td>
+                            <td style="color: ${color}; font-weight: bold;">${icon} ${tx.type || '-'}</td>
+                            <td style="text-align: right; color: ${color};">${tx.amount || '-'}</td>
+                            <td style="text-align: right; color: #888;">${tx.fee || '-'}</td>
+                            <td style="font-size: 12px; word-break: break-all;">${tx.from_to || '-'}</td>
+                        </tr>`;
+                    }).join('');
+                }
+                
+                const crypto = data.crypto || 'XRP';
+                const network = data.network || 'testnet';
+                const balance = data.balance !== undefined ? data.balance.toFixed(6) + ' ' + crypto : '---';
+                summary.textContent = `🔗 ${network.toUpperCase()} | ${crypto} | Totale: ${transactions.length} transazioni | Saldo: ${balance}`;
+                
+            } catch (e) {
+                console.error('Errore loadHistory:', e);
+                tbody.innerHTML = `<tr><td colspan="6" style="padding: 20px; text-align: center; color: #ff4757;">❌ Errore caricamento storico: ${e.message}</td></tr>`;
+            }
+        }
+        
+        // ============================================================
+        // INVIO (XRP e XLM)
+        // ============================================================
+        
+        async function sendPayment() {
+            const dest = document.getElementById('send-dest').value.trim();
+            const amount = document.getElementById('send-amount').value.trim();
+            const memo = document.getElementById('send-memo').value.trim();
+            const sendBtn = document.getElementById('send-btn');
+            const progress = document.getElementById('send-progress');
+            const progressBar = document.getElementById('send-progress-bar');
+            const statusText = document.getElementById('send-status');
+            const crypto = document.getElementById('crypto-select').value;
+            
+            if (!dest || !amount) {
+                showMessage('❌ Inserisci destinazione e importo', 'error');
+                return;
+            }
+            
+            progress.style.display = 'block';
+            progressBar.style.width = '0%';
+            statusText.textContent = '⏳ Verifica destinatario...';
+            sendBtn.disabled = true;
+            sendBtn.textContent = '⏳ Invio...';
+            
+            try {
+                progressBar.style.width = '20%';
+                
+                const contacts = await fetch('/api/contacts/list').then(r => r.json());
+                const contact = (contacts.contacts || []).find(c => c.nome.toLowerCase() === dest.toLowerCase());
+                if (contact) {
+                    document.getElementById('send-dest').value = contact.indirizzo;
+                    statusText.textContent = '📒 Contatto risolto';
+                }
+                
+                progressBar.style.width = '50%';
+                statusText.textContent = '📡 Invio transazione...';
+                
+                const resp = await fetch('/api/wallet/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        destination: document.getElementById('send-dest').value.trim(), 
+                        amount: parseFloat(amount), 
+                        memo: memo,
+                        crypto: crypto
+                    })
+                });
+                const data = await resp.json();
+                
+                progressBar.style.width = '80%';
+                statusText.textContent = '⏳ Attendere conferma...';
+                
+                if (data.success) {
+                    progressBar.style.width = '100%';
+                    statusText.textContent = '✅ Transazione completata!';
+                    showMessage('✅ ' + data.message, 'success');
+                    loadInfo();
+                    loadHistory();
+                    document.getElementById('send-dest').value = '';
+                    document.getElementById('send-amount').value = '';
+                    document.getElementById('send-memo').value = '';
+                } else {
+                    statusText.textContent = '❌ ' + data.error;
+                    showMessage('❌ ' + data.error, 'error');
+                }
+            } catch (e) {
+                statusText.textContent = '❌ Errore: ' + e.message;
+                showMessage('❌ Errore invio transazione', 'error');
+            } finally {
+                setTimeout(() => {
+                    progress.style.display = 'none';
+                    progressBar.style.width = '0%';
+                    sendBtn.disabled = false;
+                    sendBtn.textContent = '📤 Invia';
+                }, 2000);
+            }
+        }
+        
+        // ============================================================
+        // RUBRICA (con crypto e network)
+        // ============================================================
+        
+        async function loadContacts() {
+            const container = document.getElementById('contacts-list');
+            container.innerHTML = '<div class="empty">⏳ Caricamento...</div>';
+            
+            try {
+                const resp = await fetch('/api/contacts/list');
+                const data = await resp.json();
+                
+                if (data.error) {
+                    container.innerHTML = `<div class="empty" style="color: #ff4757;">❌ ${data.error}</div>`;
+                    return;
+                }
+                
+                const contacts = data.contacts || [];
+                const currentCrypto = data.crypto || 'XRP';
+                const currentNetwork = data.network || 'testnet';
+                
+                if (contacts.length === 0) {
+                    container.innerHTML = `<div class="empty">📭 Nessun contatto per ${currentCrypto} su ${currentNetwork.toUpperCase()}</div>`;
+                    return;
+                }
+                
+                container.innerHTML = contacts.map(c => {
+                    const crypto = c.crypto || 'XRP';
+                    const network = c.network || 'testnet';
+                    const badgeClass = crypto === 'XRP' ? 'badge-xrp' : 'badge-xlm';
+                    return `
+                    <div class="contact-item">
+                        <div class="contact-info">
+                            <div class="contact-name">${c.nome || '?'}</div>
+                            <div class="contact-address">${c.indirizzo || 'N/A'}</div>
+                            <div class="contact-meta">
+                                <span class="badge ${badgeClass}" style="font-size:10px;">${crypto}</span>
+                                <span class="badge ${network === 'mainnet' ? 'badge-mainnet' : 'badge-testnet'}" style="font-size:10px;">${network.toUpperCase()}</span>
+                                ${c.note ? `📝 ${c.note}` : ''}
+                            </div>
+                        </div>
+                        <div class="contact-actions">
+                            <button class="btn btn-sm" onclick="useContact('${c.indirizzo}')">📤 Usa</button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteContact('${c.nome}')">🗑️</button>
+                        </div>
+                    </div>
+                `}).join('');
+                
+            } catch (e) {
+                console.error('Errore loadContacts:', e);
+                container.innerHTML = `<div class="empty" style="color: #ff4757;">❌ Errore caricamento contatti</div>`;
+            }
+        }
+        
+        async function addContact() {
+            const name = document.getElementById('contact-name').value.trim();
+            const address = document.getElementById('contact-address').value.trim();
+            const crypto = document.getElementById('contact-crypto').value;
+            const network = document.getElementById('contact-network').value;
+            const note = document.getElementById('contact-note').value.trim();
+            
+            if (!name || !address) {
+                showMessage('❌ Inserisci nome e indirizzo', 'error');
+                return;
+            }
+            
+            try {
+                const resp = await fetch('/api/contacts/add', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        name: name, 
+                        address: address, 
+                        note: note,
+                        crypto: crypto,
+                        network: network,
+                        keyword: '',
+                        index: 0
+                    })
+                });
+                const data = await resp.json();
+                
+                if (data.success) {
+                    showMessage('✅ ' + data.message, 'success');
+                    document.getElementById('contact-name').value = '';
+                    document.getElementById('contact-address').value = '';
+                    document.getElementById('contact-note').value = '';
+                    loadContacts();
+                } else {
+                    showMessage('❌ ' + data.error, 'error');
+                }
+            } catch (e) {
+                showMessage('❌ Errore aggiunta contatto', 'error');
+            }
+        }
+        
+        async function deleteContact(name) {
+            if (!confirm(`⚠️ Eliminare il contatto '${name}'?`)) {
+                return;
+            }
+            
+            try {
+                const resp = await fetch('/api/contacts/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: name, crypto: document.getElementById('crypto-select').value })
+                });
+                const data = await resp.json();
+                
+                if (data.success) {
+                    showMessage('✅ ' + data.message, 'success');
+                    loadContacts();
+                } else {
+                    showMessage('❌ ' + data.error, 'error');
+                }
+            } catch (e) {
+                showMessage('❌ Errore eliminazione contatto', 'error');
+            }
+        }
+        
+        function useContact(address) {
+            document.getElementById('send-dest').value = address;
+            showMessage('📤 Indirizzo inserito nel campo destinazione', 'info');
+        }
+        
+        // ============================================================
+        // CARICAMENTO INIZIALE
+        // ============================================================
+        
+        loadInfo();
+        loadHistory();
+        loadWallets();
+        loadContacts();
+    </script>
+</body>
+</html>

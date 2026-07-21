@@ -1,0 +1,17 @@
+# Includi tutti i file Python
+include *.py
+include commands/*.py
+include utils/*.py
+
+# Includi template
+include templates/*.html
+include static/*
+
+# Includi documentazione
+include README.md
+include LICENSE
+include requirements.txt
+
+# Escludi file temporanei
+global-exclude *.pyc
+global-exclude __pycache__

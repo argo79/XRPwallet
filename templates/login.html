@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XRP Wallet - Login</title>
+    <!-- Favicon con emoji -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏦</text></svg>">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: monospace; 
+            background: #1a1a2e; 
+            color: #eee; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .login-container {
+            background: #16213e;
+            padding: 40px;
+            border-radius: 15px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .login-container h1 { 
+            color: #00d4ff; 
+            text-align: center; 
+            margin-bottom: 10px;
+        }
+        .login-container .subtitle {
+            color: #888;
+            text-align: center;
+            font-size: 12px;
+            margin-bottom: 30px;
+        }
+        .login-container .subtitle .name { color: #00d4ff; font-weight: bold; }
+        .input-group { margin-bottom: 20px; }
+        .input-group label { display: block; margin-bottom: 5px; color: #888; }
+        .input-group input { 
+            width: 100%; 
+            padding: 12px; 
+            background: #0a0a1a; 
+            border: 1px solid #333; 
+            color: #fff; 
+            border-radius: 5px;
+            font-family: monospace;
+        }
+        .btn { 
+            width: 100%; 
+            padding: 12px; 
+            background: #00d4ff; 
+            color: #000; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            font-weight: bold;
+            font-size: 16px;
+            font-family: monospace;
+            transition: all 0.3s;
+        }
+        .btn:hover { background: #00a8cc; }
+        .error { 
+            color: #ff4757; 
+            background: #ff475733; 
+            padding: 10px; 
+            border-radius: 5px; 
+            margin-bottom: 20px; 
+        }
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            color: #555;
+            font-size: 12px;
+        }
+        .footer .name { color: #00d4ff; font-weight: bold; }
+        .xrp-icon { color: #00d4ff; }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h1>🏦 XRP Wallet</h1>
+        <div class="subtitle">
+            <span class="xrp-icon">✦</span>
+            <span style="color: #888;">by</span>
+            <span class="name">Arg0net</span>
+            <span class="xrp-icon">✦</span>
+        </div>
+        
+        {% if error %}
+        <div class="error">{{ error }}</div>
+        {% endif %}
+        
+        <form method="POST">
+            <div class="input-group">
+                <label>👤 Username</label>
+                <input type="text" name="username" required>
+            </div>
+            <div class="input-group">
+                <label>🔑 Password</label>
+                <input type="password" name="password" required>
+            </div>
+            <button type="submit" class="btn">🔓 Login</button>
+        </form>
+        
+        <div class="footer">
+            <span style="color: #444;">Demo: admin / admin123</span>
+            <br>
+            <span style="color: #333; font-size: 10px;">
+                Built with ❤️ on the XRP Ledger
+            </span>
+        </div>
+    </div>
+</body>
+</html>
