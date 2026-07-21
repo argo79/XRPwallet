@@ -1,10 +1,14 @@
+#!/usr/bin/env python3
 """
 commands/xlm_commands.py - Comandi per XLM (Stellar)
+Versione 2.5 - INDIRIZZI COMPLETI + TIPI CORRETTI
 """
 
 import logging
 import requests
-from typing import Optional, Dict, Any
+import json
+from typing import Optional, Dict, Any, List, Tuple
+from datetime import datetime
 
 from utils.helpers import (
     ensure_wallet_settings, 
@@ -26,7 +30,6 @@ except ImportError:
     STELLAR_SDK_AVAILABLE = False
     logger.warning("⚠️ stellar-sdk non installato. I comandi XLM non saranno disponibili.")
 
-    # Classi stub per evitare errori di import
     class Keypair: pass
     class TransactionBuilder: pass
     class Network: pass
@@ -36,12 +39,259 @@ except ImportError:
 
 
 def _check_stellar_available() -> bool:
-    """Verifica che stellar-sdk sia disponibile"""
     if not STELLAR_SDK_AVAILABLE:
         print("❌ stellar-sdk non installato!")
         print("   Installa con: pip install stellar-sdk")
         return False
     return True
+
+
+def history_xlm(cli_instance, args):
+    """Storico transazioni per XLM (Stellar) con MEMO - INDIRIZZI COMPLETI"""
+    if not _check_stellar_available():
+        return
+    
+    if not ensure_wallet_settings(cli_instance):
+        print("❌ Nessun wallet caricato. Usa 'wallet NOME'.")
+        return
+
+    # Parse limit
+    limit = 50
+    json_output = False
+    
+    clean_args = []
+    i = 0
+    while i < len(args):
+        if args[i] == "--limit" or args[i] == "-l":
+            if i + 1 < len(args) and args[i + 1].isdigit():
+                limit = int(args[i + 1])
+                if limit > 200:
+                    print("⚠️  Limite massimo 200 transazioni")
+                    limit = 200
+                i += 2
+                continue
+            else:
+                i += 1
+                continue
+        elif args[i] == "--json":
+            json_output = True
+            i += 1
+            continue
+        clean_args.append(args[i])
+        i += 1
+
+    try:
+        address = cli_instance.manager.get_address()
+        wallet_name = get_wallet_display(cli_instance.active_wallet_name_file)
+
+        print(f"\n📜 STORICO TRANSAZIONI XLM")
+        print("=" * 80)
+        print(f"Wallet:    {wallet_name}")
+        print(f"Indirizzo: {address}")
+        print(f"Limite:    {limit} transazioni")
+        print("=" * 80)
+
+        if cli_instance._network == "mainnet":
+            horizon_url = "https://horizon.stellar.org"
+        else:
+            horizon_url = "https://horizon-testnet.stellar.org"
+
+        # 🔑 USO /transactions
+        url = f"{horizon_url}/accounts/{address}/transactions?limit={limit}&order=desc"
+        logger.info(f"Richiesta Horizon: {url}")
+        
+        response = requests.get(url, timeout=30)
+        
+        if response.status_code != 200:
+            print(f"❌ Errore Horizon: {response.status_code}")
+            print(f"   {response.text[:200]}")
+            return
+            
+        data = response.json()
+        transactions = data.get('_embedded', {}).get('records', [])
+        
+        if not transactions:
+            print("❌ Nessuna transazione trovata.")
+            return
+
+        if json_output:
+            print(json.dumps(transactions, indent=2, default=str))
+            return
+
+        # 🔑 MAPPA TIPI TRANSAZIONE STELLAR
+        type_map = {
+            'payment': 'Pagamento',
+            'create_account': 'Crea Account',
+            'account_merge': 'Fusione Account',
+            'path_payment_strict_send': 'Path Pay Send',
+            'path_payment_strict_receive': 'Path Pay Recv',
+            'manage_sell_offer': 'Offerta Vendita',
+            'manage_buy_offer': 'Offerta Acquisto',
+            'create_passive_sell_offer': 'Offerta Passiva',
+            'set_options': 'Opzioni Account',
+            'change_trust': 'Trustline',
+            'allow_trust': 'Autorizza Trust',
+            'manage_data': 'Data Entry',
+            'bump_sequence': 'Bump Sequence',
+            'inflation': 'Inflazione',
+            'revoke_sponsorship': 'Revoca Sponsor',
+            'clawback': 'Clawback',
+            'claim_claimable_balance': 'Claim Balance',
+            'begin_sponsoring_future_reserves': 'Inizia Sponsor',
+            'end_sponsoring_future_reserves': 'Termina Sponsor',
+        }
+
+        # 🔑 TABELLA CON MEMO - INDIRIZZI COMPLETI
+        print("\n┌────┬─────────────────────┬────────────────┬──────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────┬──────────────────────┐")
+        print(f"│ #  │ Data/Ora            │ Tipo           │ Importo      │ Da/A                                                                                                │ Memo                 │")
+        print("├────┼─────────────────────┼────────────────┼──────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────┼──────────────────────┤")
+
+        for idx, tx in enumerate(transactions[:limit], 1):
+            created_at = tx.get('created_at', '')
+            date_str = created_at.replace('T', ' ').replace('Z', '')[:19] if created_at else ''
+            
+            # 🔑 TIPO TRANSAZIONE
+            tx_type = tx.get('type', 'unknown')
+            display_type = type_map.get(tx_type, tx_type.replace('_', ' ').title()[:14])
+            
+            # 🔑 OTTIENI IMPORTO E DA/A
+            amount_str = ""
+            from_to = ""
+            
+            # Prendi le operations
+            operations_url = f"{horizon_url}/transactions/{tx.get('hash')}/operations"
+            try:
+                ops_response = requests.get(operations_url, timeout=5)
+                if ops_response.status_code == 200:
+                    ops_data = ops_response.json()
+                    ops = ops_data.get('_embedded', {}).get('records', [])
+                    
+                    for op in ops[:1]:
+                        op_type = op.get('type', '')
+                        
+                        if op_type == 'payment':
+                            amount = float(op.get('amount', 0))
+                            asset_type = op.get('asset_type', 'native')
+                            asset_code = "XLM" if asset_type == 'native' else op.get('asset_code', '?')
+                            from_acct = op.get('from', '')
+                            to_acct = op.get('to', '')
+                            
+                            if to_acct == address:
+                                from_to = f"Da: {from_acct}"
+                            elif from_acct == address:
+                                from_to = f"A: {to_acct}"
+                            else:
+                                from_to = f"{from_acct} → {to_acct}"
+                            amount_str = f"{amount:.7f} {asset_code}"
+                            break
+                            
+                        elif op_type == 'create_account':
+                            amount = float(op.get('starting_balance', 0))
+                            to_acct = op.get('account', '')
+                            from_acct = op.get('funder', '')
+                            if to_acct == address:
+                                from_to = f"Da: {from_acct}"
+                            else:
+                                from_to = f"A: {to_acct}"
+                            amount_str = f"{amount:.7f} XLM"
+                            break
+                            
+                        elif op_type in ['path_payment_strict_send', 'path_payment_strict_receive']:
+                            amount = float(op.get('amount', 0))
+                            from_acct = op.get('from', '')
+                            to_acct = op.get('to', '')
+                            if to_acct == address:
+                                from_to = f"Da: {from_acct}"
+                            else:
+                                from_to = f"A: {to_acct}"
+                            amount_str = f"{amount:.7f} XLM"
+                            break
+                            
+                        elif op_type == 'account_merge':
+                            into_acct = op.get('into', '')
+                            from_acct = op.get('account', '')
+                            from_to = f"{from_acct} → {into_acct}"
+                            amount_str = ""
+                            break
+                            
+                        elif op_type in ['set_options', 'change_trust', 'allow_trust', 'manage_data']:
+                            from_acct = op.get('source_account', '')
+                            if from_acct == address:
+                                from_to = f"Da: {from_acct}"
+                            else:
+                                from_to = f"Account: {from_acct}"
+                            amount_str = ""
+                            break
+                            
+                        else:
+                            # Altri tipi - mostriamo il tipo
+                            from_to = f"Operazione: {op_type.replace('_', ' ').title()}"
+                            amount_str = ""
+                            break
+                            
+            except Exception as e:
+                logger.debug(f"Errore recupero operations: {e}")
+                from_to = tx_type.replace('_', ' ').title()
+                amount_str = ""
+
+            # 🔑 MEMO
+            memo_text = ""
+            memo_type = tx.get('memo_type', '')
+            memo_value = tx.get('memo', '')
+            
+            if memo_value:
+                if memo_type == 'text':
+                    memo_text = f"📝 {memo_value}"
+                elif memo_type == 'id':
+                    memo_text = f"📝 ID: {memo_value}"
+                elif memo_type == 'hash':
+                    memo_text = f"📝 Hash: {memo_value}"
+                else:
+                    memo_text = f"📝 {memo_value}"
+
+            # 🔑 FEE
+            fee_stroops = tx.get('fee_charged', 0)
+            try:
+                fee_xlm = fee_stroops / 10000000
+                fee_str = f"{fee_xlm:.7f}".rstrip('0').rstrip('.')
+                if not fee_str:
+                    fee_str = "0"
+                fee_str += " XLM"
+            except:
+                fee_str = str(fee_stroops)
+
+            # 🔑 INDIRIZZI COMPLETI - SENZA TRONCAMENTO
+            # Se la riga è troppo lunga, la TUI gestirà lo scroll
+            from_to_display = from_to
+            memo_display = memo_text
+
+            # 🔑 STAMPA RIGA CON INDIRIZZI COMPLETI
+            print(f"│ {idx:<2} │ {date_str:<19} │ {display_type:<14} │ {amount_str:<30} │ {from_to_display:<100} │ {memo_display:<20} │")
+
+        print("└────┴─────────────────────┴────────────────┴──────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────┴──────────────────────┘")
+
+        # Link esploratore
+        if cli_instance._network == "mainnet":
+            explorer = f"https://stellar.expert/explorer/public/account/{address}"
+        else:
+            explorer = f"https://stellar.expert/explorer/testnet/account/{address}"
+        print(f"\n🔗 Visualizza tutto: {explorer}")
+
+        try:
+            balance = cli_instance.manager.get_balance()
+            print(f"💰 Saldo attuale: {balance:.7f} XLM")
+        except:
+            pass
+
+        print(f"📊 Mostrate {min(len(transactions), limit)} di {len(transactions)} transazioni")
+
+    except requests.exceptions.Timeout:
+        print("❌ Timeout nella richiesta a Horizon")
+    except requests.exceptions.ConnectionError:
+        print("❌ Errore di connessione a Horizon")
+    except Exception as e:
+        print(f"❌ Errore: {e}")
+        logger.error(f"Errore storico XLM: {e}", exc_info=True)
 
 
 def send_xlm(cli_instance, args):
@@ -58,6 +308,7 @@ def send_xlm(cli_instance, args):
         print("Esempio: send G... 10")
         print("         send G... 10 --memo-id 12345")
         print("         send G... 10 'memo testo'")
+        print("         send contatto 10 'memo'")
         return
 
     if not cli_instance.manager.is_loaded():
@@ -75,7 +326,7 @@ def send_xlm(cli_instance, args):
         print("❌ Importo non valido.")
         return
 
-    # Parsing argomenti
+    # Parsing memo
     memo_text = ""
     memo_id = None
     parse_args = list(args)
@@ -132,7 +383,6 @@ def send_xlm(cli_instance, args):
             print(f"📝 Memo ID: {memo_id}")
         print("=" * 60)
 
-        # Verifica che il manager Stellar sia inizializzato
         cli_instance.manager._init_stellar()
         if not cli_instance.manager.stellar_manager:
             print("❌ Manager Stellar non inizializzato")
@@ -140,20 +390,22 @@ def send_xlm(cli_instance, args):
 
         # Verifica saldo
         balance = cli_instance.manager.stellar_manager.get_balance(source_address)
-        if balance < amount:
-            print(f"❌ Saldo insufficiente!")
-            print(f"   Hai:    {balance:.6f} XLM")
-            print(f"   Servono: {amount} XLM")
+        base_fee = 100
+        total_needed = amount + (base_fee / 10000000)
+        
+        if balance < total_needed:
+            print(f"❌ Saldo insufficiente (inclusa fee minima)!")
+            print(f"   Hai:      {balance:.7f} XLM")
+            print(f"   Servono:  {total_needed:.7f} XLM (importo + fee)")
             return
 
-        # Prepara la transazione
         keypair = Keypair.from_secret(cli_instance.manager.base_seed_stellar)
         source_account = cli_instance.manager.stellar_manager.server.load_account(keypair.public_key)
 
         builder = TransactionBuilder(
             source_account=source_account,
             network_passphrase=cli_instance.manager.stellar_manager.network_passphrase,
-            base_fee=100
+            base_fee=base_fee
         )
         builder.set_timeout(300)
 
@@ -168,7 +420,6 @@ def send_xlm(cli_instance, args):
         elif memo_text:
             builder.add_memo(TextMemo(memo_text[:64]))
 
-        # Firma e invia
         transaction = builder.build()
         transaction.sign(keypair)
         response = cli_instance.manager.stellar_manager.server.submit_transaction(transaction)
@@ -180,9 +431,8 @@ def send_xlm(cli_instance, args):
             print(f"Ledger: {response.get('ledger', 0)}")
             print("=" * 60)
 
-            # Mostra nuovo saldo
             new_balance = cli_instance.manager.stellar_manager.get_balance(source_address)
-            print(f"💰 Nuovo saldo: {new_balance:.6f} XLM")
+            print(f"💰 Nuovo saldo: {new_balance:.7f} XLM")
         else:
             print(f"❌ Errore nella transazione: {response}")
 
@@ -193,183 +443,6 @@ def send_xlm(cli_instance, args):
     except Exception as e:
         print(f"❌ Errore: {e}")
         logger.error(f"Errore invio XLM: {e}", exc_info=True)
-
-
-def history_xlm(cli_instance, args):
-    """Storico transazioni per XLM (Stellar) usando l'API Horizon"""
-    if not _check_stellar_available():
-        return
-    
-    if not ensure_wallet_settings(cli_instance):
-        print("❌ Nessun wallet caricato. Usa 'wallet NOME'.")
-        return
-
-    # 🔑 PARSE --limit
-    limit = 100
-    clean_args = []
-    i = 0
-    while i < len(args):
-        if args[i] == "--limit" or args[i] == "-l":
-            if i + 1 < len(args) and args[i + 1].isdigit():
-                limit = int(args[i + 1])
-                i += 2
-                continue
-            else:
-                i += 1
-                continue
-        clean_args.append(args[i])
-        i += 1
-
-    try:
-        address = cli_instance.manager.get_address()
-        wallet_name = get_wallet_display(cli_instance.active_wallet_name_file)
-
-        print(f"\n📜 STORICO TRANSAZIONI XLM")
-        print("=" * 80)
-        print(f"Wallet:    {wallet_name}")
-        print(f"Indirizzo: {address}")
-        print(f"Limite:    {limit} transazioni")
-        print("=" * 80)
-
-        if cli_instance._network == "mainnet":
-            horizon_url = "https://horizon.stellar.org"
-        else:
-            horizon_url = "https://horizon-testnet.stellar.org"
-
-        # 🔑 LIMITE DINAMICO
-        url = f"{horizon_url}/accounts/{address}/payments?limit={limit}&order=desc"
-        logger.info(f"Richiesta Horizon: {url}")
-        
-        response = requests.get(url, timeout=30)
-        data = response.json()
-
-        if response.status_code != 200:
-            error = data.get('detail', 'Errore sconosciuto')
-            print(f"❌ Errore Horizon: {error}")
-            return
-
-        payments = data.get('_embedded', {}).get('records', [])
-        if not payments:
-            print("❌ Nessun pagamento trovato.")
-            return
-
-        # 🔑 TABELLA CON INDIRIZZI COMPLETI
-        print("\n┌────┬─────────────────────┬────────────────┬──────────────┬────────────────────────────────────────────────────────────────────────────────────────────────────┐")
-        print(f"│ #  │ Data/Ora            │ Tipo           │ Importo      │ Da/A                                                                                                │")
-        print("├────┼─────────────────────┼────────────────┼──────────────┼────────────────────────────────────────────────────────────────────────────────────────────────────┤")
-
-        type_map = {
-            'payment': 'Pagamento',
-            'create_account': 'Crea Account',
-            'account_merge': 'Fusione',
-            'path_payment_strict_send': 'Path Pay',
-            'path_payment_strict_receive': 'Path Pay',
-            'manage_sell_offer': 'Offerta',
-            'manage_buy_offer': 'Offerta',
-            'set_options': 'Opzioni',
-            'change_trust': 'Trustline',
-            'allow_trust': 'Autorizza',
-            'manage_data': 'Data',
-            'bump_sequence': 'Sequenza',
-            'inflation': 'Inflazione'
-        }
-
-        # 🔑 MOSTRA SOLO FINO AL LIMITE
-        for idx, payment in enumerate(payments[:limit], 1):
-            created_at = payment.get('created_at', '')
-            date_str = created_at.replace('T', ' ').replace('Z', '')[:19] if created_at else ''
-            op_type = payment.get('type', 'unknown')
-            display_type = type_map.get(op_type, op_type[:14])
-
-            amount_str = ""
-            from_to = ""
-
-            if op_type == 'payment':
-                amount = float(payment.get('amount', 0))
-                asset_type = payment.get('asset_type', 'native')
-                asset_code = "XLM" if asset_type == 'native' else payment.get('asset_code', '?')
-                from_acct = payment.get('from', '')
-                to_acct = payment.get('to', '')
-                
-                # 🔑 INDIRIZZI COMPLETI
-                if to_acct == address:
-                    from_to = f"Da: {from_acct}"
-                elif from_acct == address:
-                    from_to = f"A: {to_acct}"
-                else:
-                    from_to = f"{from_acct} → {to_acct}"
-                amount_str = f"{amount:.6f} {asset_code}"
-
-            elif op_type == 'create_account':
-                amount = float(payment.get('starting_balance', 0))
-                to_acct = payment.get('account', '')
-                from_acct = payment.get('funder', '')
-                if to_acct == address:
-                    from_to = f"Da: {from_acct}"
-                else:
-                    from_to = f"A: {to_acct}"
-                amount_str = f"{amount:.6f} XLM"
-
-            elif op_type == 'account_merge':
-                into_acct = payment.get('into', '')
-                from_acct = payment.get('account', '')
-                from_to = f"{from_acct} → {into_acct}"
-                amount_str = ""
-
-            elif op_type in ['path_payment_strict_send', 'path_payment_strict_receive']:
-                amount = float(payment.get('amount', 0))
-                from_acct = payment.get('from', '')
-                to_acct = payment.get('to', '')
-                if to_acct == address:
-                    from_to = f"Da: {from_acct}"
-                else:
-                    from_to = f"A: {to_acct}"
-                amount_str = f"{amount:.6f} XLM"
-
-            elif op_type in ['manage_sell_offer', 'manage_buy_offer']:
-                selling = payment.get('selling', {})
-                buying = payment.get('buying', {})
-                if op_type == 'manage_sell_offer':
-                    from_to = f"Vende {selling.get('asset_code', 'XLM')}"
-                else:
-                    from_to = f"Compra {buying.get('asset_code', 'XLM')}"
-                amount_str = ""
-
-            else:
-                from_to = payment.get('source_account', '')
-                amount_str = ""
-
-            # 🔑 TRONCA SOLO PER DISPLAY SE L'INDIRIZZO È TROPPO LUNGO
-            if len(from_to) > 100:
-                from_to_display = from_to[:50] + "..." + from_to[-50:]
-            else:
-                from_to_display = from_to
-
-            print(f"│ {idx:<2} │ {date_str[:19]:<19} │ {display_type:<14} │ {amount_str:<30} │ {from_to_display:<100} │")
-
-        print("└────┴─────────────────────┴────────────────┴──────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────┘")
-
-        # Link esploratore
-        if cli_instance._network == "mainnet":
-            explorer = f"https://stellar.expert/explorer/public/account/{address}"
-        else:
-            explorer = f"https://stellar.expert/explorer/testnet/account/{address}"
-        print(f"\n🔗 Visualizza tutto: {explorer}")
-
-        # Saldo attuale
-        balance = cli_instance.manager.get_balance()
-        print(f"💰 Saldo attuale: {balance:.6f} XLM")
-
-        # 🔑 STATISTICHE
-        print(f"📊 Mostrate {min(len(payments), limit)} di {len(payments)} transazioni")
-
-    except requests.exceptions.Timeout:
-        print("❌ Timeout nella richiesta a Horizon")
-    except requests.exceptions.ConnectionError:
-        print("❌ Errore di connessione a Horizon")
-    except Exception as e:
-        print(f"❌ Errore: {e}")
-        logger.error(f"Errore storico XLM: {e}", exc_info=True)
 
 
 def info_xlm(cli_instance, args):
@@ -406,11 +479,10 @@ def info_xlm(cli_instance, args):
     if address and not str(address).startswith("❌"):
         try:
             balance = cli_instance.manager.get_balance()
-            print(f"💰 Saldo:   {balance:.6f} XLM")
+            print(f"💰 Saldo:   {balance:.7f} XLM")
         except Exception as e:
             print(f"💰 Saldo:   ❌ {e}")
 
-    # Mostra informazioni seed
     if info.get('seed_type') == 'bip39':
         print(f"Parole: {info.get('word_count')}")
         print(f"Frase: {info.get('seed_phrase')}")
@@ -419,7 +491,6 @@ def info_xlm(cli_instance, args):
     elif info.get('seed_type') == 'stellar_seed':
         print(f"Seed Stellar: {info.get('seed_stellar')}")
 
-    # Info account Stellar
     try:
         cli_instance.manager._init_stellar()
         if cli_instance.manager.stellar_manager:
@@ -473,11 +544,10 @@ def faucet_xlm(cli_instance):
         if response.status_code == 200:
             print("✅ XLM DI TEST RICEVUTI!")
             
-            # Mostra nuovo saldo
             cli_instance.manager._init_stellar()
             if cli_instance.manager.stellar_manager:
                 balance = cli_instance.manager.stellar_manager.get_balance(address)
-                print(f"💰 Nuovo saldo: {balance:.6f} XLM")
+                print(f"💰 Nuovo saldo: {balance:.7f} XLM")
             else:
                 print("💰 Controlla il saldo con 'balance'")
         else:
@@ -495,3 +565,6 @@ def faucet_xlm(cli_instance):
     except Exception as e:
         print(f"❌ Errore: {e}")
         logger.error(f"Errore faucet XLM: {e}", exc_info=True)
+
+
+__all__ = ['send_xlm', 'history_xlm', 'info_xlm', 'faucet_xlm']

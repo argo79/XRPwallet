@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 ui_tui.py - Interfaccia terminale TUI per XRP/XLM Wallet Manager
-by Arg0net - v2.2
+by Arg0net - v2.5 - CON SCROLL ORIZZONTALE
 """
 
 import curses
@@ -27,6 +27,7 @@ class XRPWalletTUI:
         self.output_lines = []
         self.output_title = ""
         self.output_scroll = 0
+        self.output_hscroll = 0  # 🔑 SCROLL ORIZZONTALE
         self.output_visible = False
         self.focus = "wallets"
         
@@ -38,7 +39,7 @@ class XRPWalletTUI:
         self.selected_contact_address = ""
         self.selected_contact_name = ""
         
-        self.version = "v2.2"
+        self.version = "v2.5"
         self.author = "Arg0net"
         
     def setup_colors(self):
@@ -97,7 +98,6 @@ class XRPWalletTUI:
         
         stdscr.addstr(3, 22, f" |  📂 {active}")
         
-        # 🔑 Mostra contatto selezionato nella header
         if self.selected_contact_address:
             contact_display = f"📒 {self.selected_contact_name}"
             stdscr.attron(curses.color_pair(14) | curses.A_BOLD)
@@ -133,7 +133,6 @@ class XRPWalletTUI:
         
         if self.show_contacts_mode:
             focus_indicator = "📒 RUBRICA"
-            # 🔑 Footer specifico per rubrica
             stdscr.attron(curses.A_BOLD)
             stdscr.addstr(start_row + 1, 2, f"FOCUS: {focus_indicator}")
             stdscr.attroff(curses.A_BOLD)
@@ -146,7 +145,7 @@ class XRPWalletTUI:
             stdscr.attron(curses.A_BOLD)
             stdscr.addstr(start_row + 1, 2, f"FOCUS: {focus_indicator}")
             stdscr.attroff(curses.A_BOLD)
-            commands = ["Tab:Focus", "↑↓:Nav", "Enter:Az", "w:Wallet", "s:Switch", "i:Info", "b:Bal", "t:Send", "h:Hist", "c:Crypto", "r:Rubrica"]
+            commands = ["Tab:Focus", "↑↓:Nav", "←→:HScroll", "Enter:Az", "w:Wallet", "s:Switch", "i:Info", "b:Bal", "t:Send", "h:Hist", "c:Crypto", "r:Rubrica"]
             cmd_str = " | ".join(commands)
             if len(cmd_str) < width - 40:
                 stdscr.addstr(start_row + 1, 25, cmd_str[:width-45])
@@ -191,7 +190,6 @@ class XRPWalletTUI:
                     break
     
     def load_contacts(self):
-        """Carica i contatti dalla rubrica filtrati per crypto e network corrente"""
         self.contacts = []
         if self.cli.rubrica_file.exists():
             try:
@@ -199,10 +197,8 @@ class XRPWalletTUI:
                     data = json.load(f)
                     all_contacts = data.get("contatti", [])
                     
-                    # 🔑 FILTRA PER CRYPTO E NETWORK
                     for c in all_contacts:
                         if c.get("crypto", "XRP") == self.cli._crypto:
-                            # Se network non è specificato, mostra comunque (compatibilità)
                             c_network = c.get("network", "testnet")
                             if c_network == self.cli._network:
                                 self.contacts.append(c)
@@ -215,8 +211,6 @@ class XRPWalletTUI:
             self.contact_scroll = 0
     
     def save_contacts(self):
-        """Salva i contatti sul file"""
-        # 🔑 CARICA TUTTI I CONTATTI ESISTENTI
         all_contacts = []
         if self.cli.rubrica_file.exists():
             try:
@@ -226,13 +220,9 @@ class XRPWalletTUI:
             except Exception as e:
                 print(f"⚠️ Errore lettura rubrica: {e}")
         
-        # 🔑 RIMUOVI I CONTATTI DELLA CRYPTO CORRENTE (per evitare duplicati)
         other_contacts = [c for c in all_contacts if c.get("crypto", "XRP") != self.cli._crypto]
-        
-        # 🔑 AGGIUNGI I NUOVI CONTATTI
         all_contacts = other_contacts + self.contacts
         
-        # 🔑 SCRIVI SU FILE
         try:
             with open(self.cli.rubrica_file, 'w') as f:
                 json.dump({"contatti": all_contacts}, f, indent=2)
@@ -331,14 +321,12 @@ class XRPWalletTUI:
         return row
     
     def draw_contacts_list(self, stdscr, start_row):
-        """Disegna la lista contatti nell'area output"""
         height, width = stdscr.getmaxyx()
         row = start_row
         
         if not self.contacts:
             self.load_contacts()
         
-        # 🔑 Mostra contatto selezionato
         if self.selected_contact_address:
             stdscr.attron(curses.color_pair(2) | curses.A_BOLD)
             stdscr.addstr(row, 2, f"✅ Selezionato: {self.selected_contact_name} -> {self.selected_contact_address[:20]}...")
@@ -346,7 +334,6 @@ class XRPWalletTUI:
             stdscr.attroff(curses.color_pair(2) | curses.A_BOLD)
         
         stdscr.attron(curses.A_BOLD | curses.color_pair(14))
-        # 🔑 MOSTRA FILTRO CORRENTE
         filter_info = f"📒 RUBRICA - {self.cli._crypto} / {self.cli._network.upper()}"
         stdscr.addstr(row, 2, f"{filter_info}  (t=Invia  a=Aggiungi  d=Elimina  r=Esci)")
         row += 1
@@ -358,7 +345,6 @@ class XRPWalletTUI:
             stdscr.addstr(row, 4, "💡 Premi 'a' per aggiungere un contatto")
             return row + 2
         
-        # 🔑 HEADER CON NETWORK
         stdscr.addstr(row, 2, f"{'#':<3} {'Nome':<18} {'Rete':<8} {'Indirizzo'}")
         row += 1
         stdscr.addstr(row, 2, "-" * (width - 3))
@@ -387,13 +373,11 @@ class XRPWalletTUI:
             network = c.get("network", "testnet")[:7]
             indirizzo = c.get("indirizzo", "?")
             
-            # 🔑 COLORE PER RETE
             network_color = self._get_network_color(network)
             
             if len(indirizzo) > width - 40:
                 indirizzo = indirizzo[:width-43] + "..."
             
-            # Stampa con colori
             stdscr.addstr(row, 2, f" {actual_index+1:2}  ")
             stdscr.addstr(row, 7, f"{nome:<18} ")
             
@@ -423,7 +407,6 @@ class XRPWalletTUI:
         if start_row >= height - 2:
             return start_row
         
-        # Separatore
         sep_line = "=" * (width - 1)
         if self.output_title and not self.show_contacts_mode:
             title_display = f" {self.output_title} "
@@ -447,49 +430,102 @@ class XRPWalletTUI:
             if self.output_scroll < 0:
                 self.output_scroll = 0
             
+            # 🔑 CALCOLA LARGHEZZA MASSIMA DELLE RIGHE PER LO SCROLL ORIZZONTALE
+            max_line_len = 0
+            for line in self.output_lines:
+                if len(line) > max_line_len:
+                    max_line_len = len(line)
+            
+            # 🔑 AGGIUSTA SCROLL ORIZZONTALE
+            if self.output_hscroll > max_line_len - width + 1:
+                self.output_hscroll = max(0, max_line_len - width + 1)
+            if self.output_hscroll < 0:
+                self.output_hscroll = 0
+            
             visible_lines = self.output_lines[self.output_scroll:self.output_scroll + max_output_rows]
+            
+            # 🔑 MOSTRA INDICATORE DI SCROLL ORIZZONTALE
+            if max_line_len > width - 4:
+                if self.output_hscroll > 0:
+                    stdscr.attron(curses.color_pair(4) | curses.A_BOLD)
+                    stdscr.addstr(start_row, 1, "◄")
+                    stdscr.attroff(curses.color_pair(4) | curses.A_BOLD)
+                if self.output_hscroll < max_line_len - width + 1:
+                    stdscr.attron(curses.color_pair(4) | curses.A_BOLD)
+                    stdscr.addstr(start_row, width - 2, "►")
+                    stdscr.attroff(curses.color_pair(4) | curses.A_BOLD)
+            
             for i, line in enumerate(visible_lines):
                 if start_row + i < height - 1:
-                    display_line = line
-                    if len(display_line) > width - 4:
-                        display_line = display_line[:width-7] + "..."
+                    # 🔑 APPLICA SCROLL ORIZZONTALE
+                    if len(line) > width - 4:
+                        display_line = line[self.output_hscroll:self.output_hscroll + width - 4]
+                    else:
+                        display_line = line
                     
-                    # 🔑 COLORI PER XRP E XLM
-                    if "RICEVUTO" in display_line:
+                    # 🔑 ESTRAI MEMO
+                    memo_text = ""
+                    main_text = display_line
+                    
+                    if "📝" in display_line:
+                        parts = display_line.split("📝", 1)
+                        main_text = parts[0].strip()
+                        memo_text = "📝" + parts[1].strip() if len(parts) > 1 else ""
+                    
+                    # 🔑 COLORI
+                    if "RICEVUTO" in display_line or "Da:" in display_line:
                         stdscr.attron(curses.color_pair(11))
-                        stdscr.addstr(start_row + i, 2, display_line)
+                        stdscr.addstr(start_row + i, 2, main_text[:width-25])
                         stdscr.attroff(curses.color_pair(11))
-                    elif "INVIATO" in display_line:
+                        
+                        if memo_text:
+                            stdscr.attron(curses.color_pair(14) | curses.A_BOLD)
+                            memo_x = len(main_text[:width-25]) + 2
+                            if memo_x < width - len(memo_text) - 2:
+                                stdscr.addstr(start_row + i, memo_x, memo_text[:width-memo_x-2])
+                            stdscr.attroff(curses.color_pair(14) | curses.A_BOLD)
+                            
+                    elif "INVIATO" in display_line or "A:" in display_line:
                         stdscr.attron(curses.color_pair(12))
-                        stdscr.addstr(start_row + i, 2, display_line)
+                        stdscr.addstr(start_row + i, 2, main_text[:width-25])
                         stdscr.attroff(curses.color_pair(12))
-                    # 🔑 COLORI PER XLM - "Da:" = Ricevuto (verde), "A:" = Inviato (giallo)
-                    elif "Da:" in display_line:
-                        stdscr.attron(curses.color_pair(11))  # Verde per ricevuto
-                        stdscr.addstr(start_row + i, 2, display_line)
-                        stdscr.attroff(curses.color_pair(11))
-                    elif "A:" in display_line:
-                        stdscr.attron(curses.color_pair(12))  # Giallo per inviato
-                        stdscr.addstr(start_row + i, 2, display_line)
-                        stdscr.attroff(curses.color_pair(12))
+                        
+                        if memo_text:
+                            stdscr.attron(curses.color_pair(14) | curses.A_BOLD)
+                            memo_x = len(main_text[:width-25]) + 2
+                            if memo_x < width - len(memo_text) - 2:
+                                stdscr.addstr(start_row + i, memo_x, memo_text[:width-memo_x-2])
+                            stdscr.attroff(curses.color_pair(14) | curses.A_BOLD)
+                            
                     elif "✅" in display_line:
                         stdscr.attron(curses.color_pair(2))
-                        stdscr.addstr(start_row + i, 2, display_line)
+                        stdscr.addstr(start_row + i, 2, display_line[:width-4])
                         stdscr.attroff(curses.color_pair(2))
+                        
                     elif "❌" in display_line or "errore" in display_line.lower():
                         stdscr.attron(curses.color_pair(3))
-                        stdscr.addstr(start_row + i, 2, display_line)
+                        stdscr.addstr(start_row + i, 2, display_line[:width-4])
                         stdscr.attroff(curses.color_pair(3))
+                        
                     else:
-                        stdscr.addstr(start_row + i, 2, display_line)
+                        stdscr.addstr(start_row + i, 2, display_line[:width-4])
             
+            # 🔑 INDICATORI DI SCROLL
             if total_lines > max_output_rows:
                 scroll_info = f" [{self.output_scroll+1}-{min(self.output_scroll+max_output_rows, total_lines)}/{total_lines}]"
                 stdscr.addstr(start_row + max_output_rows - 1, width - len(scroll_info) - 2, scroll_info)
             
+            # 🔑 INDICATORE SCROLL ORIZZONTALE
+            if max_line_len > width - 4:
+                hscroll_info = f" ←→ {self.output_hscroll+1}/{max_line_len-width+2}"
+                stdscr.addstr(start_row + max_output_rows - 1, 2, hscroll_info[:15])
+            
             start_row += max_output_rows
         else:
-            stdscr.addstr(start_row, 4, "i=Info  b=Balance  h=History  t=Send  w=Wallet  s=Switch  c=Crypto  r=Rubrica")
+            cmd_line = "i=Info  b=Balance  h=History  t=Send  w=Wallet  s=Switch  c=Crypto  r=Rubrica"
+            if self.selected_contact_address:
+                cmd_line += f"  📒 {self.selected_contact_name}"
+            stdscr.addstr(start_row, 4, cmd_line[:width-8])
             start_row += 1
         
         return start_row
@@ -511,6 +547,7 @@ class XRPWalletTUI:
         self.output_title = title
         self.output_lines = content.split('\n')
         self.output_scroll = 0
+        self.output_hscroll = 0  # 🔑 RESET SCROLL ORIZZONTALE
         self.output_visible = True
         self.focus = "output"
         self.show_contacts_mode = False
@@ -518,12 +555,7 @@ class XRPWalletTUI:
         if len(self.output_lines) > 500:
             self.output_lines = self.output_lines[:500]
     
-    # ============================================================
-    # RUBRICA - FUNZIONI
-    # ============================================================
-    
     def toggle_contacts(self):
-        """Attiva/disattiva la modalità rubrica"""
         if self.show_contacts_mode:
             self.show_contacts_mode = False
             self.focus = "wallets"
@@ -537,7 +569,6 @@ class XRPWalletTUI:
             self.contact_scroll = 0
     
     def select_contact(self):
-        """Seleziona il contatto corrente - memorizza indirizzo"""
         if not self.contacts or self.selected_contact >= len(self.contacts):
             return
         
@@ -545,27 +576,22 @@ class XRPWalletTUI:
         self.selected_contact_name = contact.get("nome", "sconosciuto")
         self.selected_contact_address = contact.get("indirizzo", "")
         
-        # Mostra conferma nell'area output
         self.set_output("✅ CONTATTO SELEZIONATO", 
                        f"📒 {self.selected_contact_name}\n🏠 {self.selected_contact_address}\n\n💡 Premi 't' per inviare a questo contatto")
         self.show_contacts_mode = False
         self.focus = "wallets"
     
     def send_to_contact(self):
-        """Invia al contatto selezionato"""
         if not self.selected_contact_address:
-            # Se non c'è un contatto selezionato, usa quello corrente
             if self.contacts and self.selected_contact < len(self.contacts):
                 self.select_contact()
             else:
                 self.set_output("❌ ERRORE", "Nessun contatto selezionato!\n\nSeleziona un contatto con Enter prima di inviare.")
                 return
         
-        # Esci dalla modalità rubrica
         self.show_contacts_mode = False
         self.focus = "wallets"
         
-        # Avvia il menu send con l'indirizzo precompilato
         curses.endwin()
         
         print("\n📤 INVIA A CONTATTO")
@@ -600,7 +626,6 @@ class XRPWalletTUI:
         self.load_wallets()
     
     def add_contact(self):
-        """Aggiunge un nuovo contatto"""
         curses.endwin()
         
         try:
@@ -622,7 +647,6 @@ class XRPWalletTUI:
                 input("Premi Invio per continuare...")
                 return
             
-            # 🔑 VALIDAZIONE IN BASE ALLA CRYPTO CORRENTE
             if self.cli._crypto == "XRP":
                 if not indirizzo.startswith('r'):
                     print(f"❌ Indirizzo XRP deve iniziare con 'r'")
@@ -644,14 +668,12 @@ class XRPWalletTUI:
                     input("Premi Invio per continuare...")
                     return
             
-            # Verifica duplicati
             for c in self.contacts:
                 if c.get("nome", "").lower() == nome.lower():
                     print(f"❌ Il contatto '{nome}' esiste già")
                     input("Premi Invio per continuare...")
                     return
             
-            # 🔑 AGGIUNGI CONTATTO
             new_contact = {
                 "nome": nome,
                 "indirizzo": indirizzo,
@@ -660,8 +682,6 @@ class XRPWalletTUI:
                 "created_at": datetime.now().isoformat()
             }
             self.contacts.append(new_contact)
-            
-            # 🔑 SALVA IMMEDIATAMENTE SU FILE
             self.save_contacts()
             
             print(f"✅ Contatto '{nome}' aggiunto!")
@@ -679,7 +699,6 @@ class XRPWalletTUI:
             traceback.print_exc()
             input("Premi Invio per continuare...")
         finally:
-            # 🔑 RITORNA ALLA TUI
             curses.doupdate()
             self.load_contacts()
             self.show_contacts_mode = True
@@ -687,7 +706,6 @@ class XRPWalletTUI:
             self.focus = "wallets"
     
     def delete_contact(self):
-        """Elimina il contatto selezionato"""
         if not self.contacts or self.selected_contact >= len(self.contacts):
             return
         
@@ -722,10 +740,6 @@ class XRPWalletTUI:
         self.load_contacts()
         self.show_contacts_mode = True
         self.output_visible = False
-    
-    # ============================================================
-    # MENU WALLET
-    # ============================================================
     
     def wallet_menu(self):
         curses.endwin()
@@ -925,10 +939,6 @@ class XRPWalletTUI:
         
         input("\nPremi Invio per continuare...")
     
-    # ============================================================
-    # COMANDI
-    # ============================================================
-    
     def switch_wallet(self):
         if self.show_contacts_mode:
             return
@@ -1044,7 +1054,6 @@ class XRPWalletTUI:
         self.load_wallets()
     
     def show_history(self):
-        """Mostra lo storico transazioni (XRP o XLM)"""
         if not self.cli.manager.is_loaded():
             self.message = "❌ Nessun wallet caricato"
             self.message_type = "error"
@@ -1056,19 +1065,20 @@ class XRPWalletTUI:
         
         f = io.StringIO()
         with redirect_stdout(f):
-            # 🔑 CONTROLLA LA CRYPTO CORRENTE
             if self.cli._crypto == "XLM":
-                # Per XLM usa il modulo dedicato
                 try:
                     from commands.xlm_commands import history_xlm
-                    history_xlm(self.cli, [])
+                    history_xlm(self.cli, ["--limit", "25"])
                 except ImportError:
                     print("❌ Comando XLM non disponibile. Installa stellar-sdk")
             else:
-                # Per XRP usa il metodo interno
-                self.cli._show_xrp_history([])
+                self.cli._show_xrp_history(["--limit", "25"])
         
         output = f.getvalue()
+        
+        if not output.strip():
+            output = "❌ Nessuna transazione trovata."
+        
         self.set_output("📜 STORICO TRANSAZIONI", output)
     
     def crypto_menu(self):
@@ -1103,7 +1113,6 @@ class XRPWalletTUI:
     def handle_input(self, key, stdscr):
         height, width = stdscr.getmaxyx()
         
-        # 🔑 GESTIONE RUBRICA INTERATTIVA
         if self.show_contacts_mode:
             if key == curses.KEY_UP:
                 if self.selected_contact > 0:
@@ -1125,19 +1134,16 @@ class XRPWalletTUI:
                 return True
                 
             elif key in [ord('t'), ord('T')]:
-                # 🔑 Invia al contatto selezionato
                 if self.selected_contact < len(self.contacts):
                     self.select_contact()
                     self.send_to_contact()
                 return True
                 
             elif key in [ord('a'), ord('A')]:
-                # 🔑 Aggiungi contatto
                 self.add_contact()
                 return True
                 
             elif key in [ord('d'), ord('D')]:
-                # 🔑 Elimina contatto
                 self.delete_contact()
                 return True
                 
@@ -1151,7 +1157,6 @@ class XRPWalletTUI:
             
             return True
         
-        # 🔑 GESTIONE NORMALE
         if self.focus == "wallets":
             if key == curses.KEY_UP:
                 if self.selected_wallet > 0:
@@ -1186,6 +1191,21 @@ class XRPWalletTUI:
                 if len(self.output_lines) > 0:
                     self.output_scroll = min(len(self.output_lines) - 1, self.output_scroll + 1)
                 return True
+                
+            # 🔑 SCROLL ORIZZONTALE
+            elif key == curses.KEY_LEFT:
+                self.output_hscroll = max(0, self.output_hscroll - 10)
+                return True
+                
+            elif key == curses.KEY_RIGHT:
+                max_line_len = 0
+                for line in self.output_lines:
+                    if len(line) > max_line_len:
+                        max_line_len = len(line)
+                self.output_hscroll = min(max_line_len - width + 1, self.output_hscroll + 10)
+                if self.output_hscroll < 0:
+                    self.output_hscroll = 0
+                return True
         
         if key == ord('\t'):
             if self.focus == "wallets" and self.output_visible:
@@ -1194,7 +1214,6 @@ class XRPWalletTUI:
                 self.focus = "wallets"
             return True
         
-        # COMANDI
         if key in [ord('r'), ord('R')]:
             self.toggle_contacts()
             return True
@@ -1216,7 +1235,6 @@ class XRPWalletTUI:
             return True
             
         elif key in [ord('t'), ord('T')]:
-            # 🔑 Se c'è un contatto selezionato, usa quello
             if self.selected_contact_address:
                 self.send_to_contact()
             else:
