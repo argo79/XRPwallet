@@ -11,7 +11,7 @@
         .container { max-width: 1200px; margin: 0 auto; }
         
         .header { background: #16213e; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
-        .header h1 { color: #00d4ff; }
+        .header h1 { color: #00d4ff; text-align: center; }
         .nav { display: flex; gap: 10px; margin: 10px 0; flex-wrap: wrap; }
         .nav button { 
             padding: 10px 15px; 
@@ -226,7 +226,6 @@
         .progress-bar-fill { width:0%; height:4px; background:#2ed573; transition:width 0.5s; }
         #send-status { color:#888; font-size:12px; margin-top:5px; }
         
-        /* 🔑 RICEVI - QR CODE */
         .ricevi-grid { display: flex; flex-wrap: wrap; gap: 30px; align-items: flex-start; }
         .ricevi-qr { flex: 1; min-width: 250px; text-align: center; background: #0a0a1a; padding: 20px; border-radius: 10px; }
         .ricevi-info { flex: 1; min-width: 300px; background: #0f3460; padding: 20px; border-radius: 10px; }
@@ -244,14 +243,28 @@
             margin-top: 20px; 
         }
         .footer .xrp-icon { color: #00d4ff; }
-        .footer .name { color: #00d4ff; font-weight: bold; }
+        .footer .name { 
+            color: #00d4ff; 
+            font-weight: bold; 
+            text-decoration: none; 
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+        .footer .name:hover { 
+            color: #00ff88; 
+            text-decoration: underline;
+        }
         .footer .version { color: #444; }
         .footer .sub { color: #333; font-size: 10px; }
+        
+        .history-controls { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; }
+        .history-controls select { padding: 5px 10px; background: #0a0a1a; border: 1px solid #333; color: #fff; border-radius: 5px; font-family: monospace; }
+        #history-table th:last-child { color: #00d4ff; font-weight: bold; }
+        #history-table td:last-child { color: #00d4ff; min-width: 150px; max-width: 400px; word-break: break-word; }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- HEADER -->
         <div class="header">
             <h1>🏦 <span id="header-crypto">XRP</span> Wallet Manager</h1>
             
@@ -284,7 +297,6 @@
         
         <div id="message" class="message"></div>
         
-        <!-- DASHBOARD -->
         <div id="dashboard">
             <div class="grid">
                 <div class="card">
@@ -298,7 +310,7 @@
                 </div>
                 
                 <div class="card">
-                    <h3 id="send-title">📤 Invia XRP</h3>
+                    <h3 id="send-title">📤 Invia <span id="send-crypto">XRP</span></h3>
                     <div class="input-group">
                         <input type="text" id="send-dest" placeholder="Indirizzo o nome contatto">
                     </div>
@@ -317,7 +329,6 @@
             </div>
         </div>
         
-        <!-- SEZIONE RICEVI -->
         <div id="section-ricevi" class="section">
             <h3>📥 Ricevi <span id="ricevi-crypto">XRP</span></h3>
             <div class="ricevi-grid">
@@ -351,9 +362,20 @@
             </div>
         </div>
         
-        <!-- SEZIONE STORICO -->
         <div id="section-history" class="section">
-            <h3>📜 Transazioni recenti</h3>
+            <div class="history-controls">
+                <h3 style="margin:0;">📜 Transazioni recenti</h3>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <label style="color: #888; font-size: 12px;">Mostra:</label>
+                    <select id="history-limit" onchange="loadHistory()">
+                        <option value="10">10</option>
+                        <option value="20" selected>20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                    <button class="btn btn-sm" onclick="loadHistory()">🔄 Ricarica</button>
+                </div>
+            </div>
             <div class="history-container">
                 <table id="history-table">
                     <thead>
@@ -364,17 +386,17 @@
                             <th style="text-align: right;">Importo</th>
                             <th style="text-align: right;">Fee</th>
                             <th>Da/A</th>
+                            <th style="color: #00d4ff;">Memo</th>
                         </tr>
                     </thead>
                     <tbody id="history-body">
-                        <tr><td colspan="6" style="padding: 20px; text-align: center; color: #888;">Caricamento storico...</td></tr>
+                        <tr><td colspan="7" style="padding: 20px; text-align: center; color: #888;">Caricamento storico...</td></tr>
                     </tbody>
                 </table>
             </div>
             <div id="history-summary" style="padding: 10px; color: #888; font-size: 12px; text-align: right;"></div>
         </div>
         
-        <!-- SEZIONE RUBRICA -->
         <div id="section-rubrica" class="section">
             <h3>📒 Rubrica</h3>
             <div class="rubrica-input-group">
@@ -398,13 +420,11 @@
             </div>
         </div>
         
-        <!-- SEZIONE WALLET -->
         <div id="section-wallets" class="section">
             <h3>📂 Wallet disponibili</h3>
             <div class="wallets-list" id="wallets-list">Caricamento wallet...</div>
         </div>
         
-        <!-- SEZIONE GESTIONE -->
         <div id="section-gestione" class="section">
             <h3>🔧 Gestione Wallet</h3>
             <div class="wallet-actions">
@@ -414,22 +434,24 @@
             </div>
         </div>
         
-        <!-- FOOTER -->
         <div class="footer">
             <span class="xrp-icon">✦</span>
             <span style="color: #888;">XRP/XLM Wallet Manager</span>
             <span style="color: #555;"> · </span>
             <span style="color: #666;">by</span>
-            <span class="name">Arg0net</span>
+            <a href="https://github.com/argo79" target="_blank" class="name">Arg0net</a>
             <span style="color: #555;"> · </span>
             <span class="version">v2.0</span>
             <span class="xrp-icon">✦</span>
             <br>
             <span class="sub">Built with ❤️ on the XRP Ledger &amp; Stellar</span>
+            <br>
+            <span style="color: #333; font-size: 9px;">
+                <a href="https://github.com/argo79/XRPwallet" target="_blank" style="color: #555; text-decoration: none;">🔗 GitHub Repository</a>
+            </span>
         </div>
     </div>
     
-    <!-- MODAL CREA WALLET -->
     <div id="createWalletModal" class="modal">
         <div class="modal-content">
             <h2>➕ Crea Nuovo Wallet</h2>
@@ -458,7 +480,6 @@
         </div>
     </div>
     
-    <!-- MODAL IMPORTA WALLET -->
     <div id="importWalletModal" class="modal">
         <div class="modal-content">
             <h2>📥 Importa Wallet</h2>
@@ -490,60 +511,42 @@
     </div>
     
     <script>
-        // ============================================================
-        // STATO
-        // ============================================================
-        
         let activeSection = null;
-        
-        // ============================================================
-        // NAVIGAZIONE
-        // ============================================================
         
         function toggleSection(id) {
             const section = document.getElementById('section-' + id);
-            
             if (activeSection === id) {
                 section.classList.remove('visible');
                 activeSection = null;
                 document.querySelectorAll('.nav button').forEach(btn => btn.classList.remove('active'));
                 return;
             }
-            
             document.querySelectorAll('.section').forEach(el => el.classList.remove('visible'));
             section.classList.add('visible');
             activeSection = id;
-            
             document.querySelectorAll('.nav button').forEach(btn => btn.classList.remove('active'));
             const activeBtn = document.querySelector(`.nav button[onclick="toggleSection('${id}')"]`);
             if (activeBtn) activeBtn.classList.add('active');
-            
             if (id === 'history') loadHistory();
             if (id === 'ricevi') loadQRCode();
             if (id === 'rubrica') loadContacts();
             if (id === 'wallets') loadWallets();
         }
         
-        // ============================================================
-        // CRYPTO / NETWORK
-        // ============================================================
-        
         async function changeCrypto() {
             const crypto = document.getElementById('crypto-select').value;
             document.getElementById('header-crypto').textContent = crypto;
             document.getElementById('send-title').textContent = '📤 Invia ' + crypto;
+            document.getElementById('send-crypto').textContent = crypto;
             document.getElementById('ricevi-crypto').textContent = crypto;
-            
             const badge = document.getElementById('crypto-badge');
             badge.textContent = crypto;
             badge.className = 'badge ' + (crypto === 'XRP' ? 'badge-xrp' : 'badge-xlm');
-            
             await fetch('/api/wallet/change_crypto', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ crypto: crypto })
             });
-            
             loadInfo();
             loadHistory();
             loadWallets();
@@ -551,27 +554,20 @@
         
         async function changeNetwork() {
             const network = document.getElementById('network-select').value;
-            
             const badge = document.getElementById('network-badge');
             badge.textContent = network.toUpperCase();
             badge.className = 'badge ' + (network === 'mainnet' ? 'badge-mainnet' : 'badge-testnet');
-            
             await fetch('/api/wallet/change_network', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ network: network })
             });
-            
             loadInfo();
             loadHistory();
             loadWallets();
         }
         
-        // ============================================================
-        // UTILITY
-        // ============================================================
-        
-        function showMessage(msg, type='info') {
+        function showMessage(msg, type) {
             const el = document.getElementById('message');
             el.textContent = msg;
             el.className = 'message ' + type;
@@ -586,10 +582,6 @@
         function closeModal(id) {
             document.getElementById(id).style.display = 'none';
         }
-        
-        // ============================================================
-        // WALLET
-        // ============================================================
         
         async function loadInfo() {
             try {
@@ -607,18 +599,14 @@
                 document.getElementById('wallet-network').textContent = data.network ? data.network.toUpperCase() : '-';
                 document.getElementById('network-info').textContent = '🔗 ' + (data.crypto || 'XRP') + ' su ' + (data.network ? data.network.toUpperCase() : '');
                 document.getElementById('header-crypto').textContent = data.crypto || 'XRP';
-                
                 if (data.crypto) document.getElementById('crypto-select').value = data.crypto;
                 if (data.network) document.getElementById('network-select').value = data.network;
-                
                 const badge = document.getElementById('crypto-badge');
                 badge.textContent = data.crypto || 'XRP';
                 badge.className = 'badge ' + ((data.crypto || 'XRP') === 'XRP' ? 'badge-xrp' : 'badge-xlm');
-                
                 const netBadge = document.getElementById('network-badge');
                 netBadge.textContent = (data.network || 'testnet').toUpperCase();
                 netBadge.className = 'badge ' + ((data.network || 'testnet') === 'mainnet' ? 'badge-mainnet' : 'badge-testnet');
-                
             } catch (e) {
                 showMessage('❌ Errore caricamento info', 'error');
             }
@@ -683,10 +671,6 @@
             }
         }
         
-        // ============================================================
-        // CREA / IMPORTA WALLET
-        // ============================================================
-        
         function showCreateWallet() {
             document.getElementById('new-wallet-name').value = '';
             document.getElementById('new-wallet-passphrase').value = '';
@@ -699,25 +683,17 @@
             const passphrase = document.getElementById('new-wallet-passphrase').value.trim();
             const crypto = document.getElementById('new-wallet-crypto').value;
             const network = document.getElementById('new-wallet-network').value;
-            
             if (!name) {
                 showMessage('❌ Inserisci un nome per il wallet', 'error');
                 return;
             }
-            
             try {
                 const resp = await fetch('/api/wallet/create', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        name: name, 
-                        passphrase: passphrase, 
-                        network: network,
-                        crypto: crypto
-                    })
+                    body: JSON.stringify({ name, passphrase, network, crypto })
                 });
                 const data = await resp.json();
-                
                 if (data.success) {
                     const seedEl = document.getElementById('new-wallet-seed');
                     seedEl.textContent = '📝 Seed phrase: ' + data.seed_phrase;
@@ -749,26 +725,17 @@
             const passphrase = document.getElementById('import-passphrase').value.trim();
             const crypto = document.getElementById('import-wallet-crypto').value;
             const network = document.getElementById('import-wallet-network').value;
-            
             if (!name || !seed) {
                 showMessage('❌ Inserisci nome e seed', 'error');
                 return;
             }
-            
             try {
                 const resp = await fetch('/api/wallet/import', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        name: name, 
-                        seed_input: seed, 
-                        passphrase: passphrase,
-                        network: network,
-                        crypto: crypto
-                    })
+                    body: JSON.stringify({ name, seed_input: seed, passphrase, network, crypto })
                 });
                 const data = await resp.json();
-                
                 if (data.success) {
                     showMessage('✅ ' + data.message + ' su ' + network.toUpperCase(), 'success');
                     closeModal('importWalletModal');
@@ -788,11 +755,7 @@
                 showMessage('❌ Nessun wallet attivo da eliminare', 'error');
                 return;
             }
-            
-            if (!confirm(`⚠️ Eliminare il wallet '${active}'?`)) {
-                return;
-            }
-            
+            if (!confirm('⚠️ Eliminare il wallet "' + active + '"?')) return;
             try {
                 const resp = await fetch('/api/wallet/delete', {
                     method: 'POST',
@@ -800,7 +763,6 @@
                     body: JSON.stringify({ name: active })
                 });
                 const data = await resp.json();
-                
                 if (data.success) {
                     showMessage('✅ ' + data.message, 'success');
                     loadWallets();
@@ -813,65 +775,41 @@
             }
         }
         
-        // ============================================================
-        // QR CODE - RICEVI
-        // ============================================================
-        
         async function loadQRCode() {
             const loading = document.getElementById('qrcode-loading');
             const image = document.getElementById('qrcode-image');
-            
             loading.style.display = 'block';
             image.style.display = 'none';
-            
             try {
                 const resp = await fetch('/api/wallet/qrcode');
                 const data = await resp.json();
-                
                 if (data.error) {
                     loading.textContent = '❌ ' + data.error;
                     return;
                 }
-                
                 image.src = data.qrcode;
                 image.style.display = 'block';
                 loading.style.display = 'none';
-                
                 document.getElementById('ricevi-wallet').textContent = data.wallet_name || '-';
                 document.getElementById('ricevi-crypto-label').textContent = data.crypto || 'XRP';
                 document.getElementById('ricevi-crypto').textContent = data.crypto || 'XRP';
                 document.getElementById('ricevi-network').textContent = (data.network || 'testnet').toUpperCase();
                 document.getElementById('ricevi-balance').textContent = (data.balance || 0).toFixed(6) + ' ' + (data.crypto || 'XRP');
                 document.getElementById('ricevi-address').textContent = data.address || '-';
-                
                 const network = data.network || 'testnet';
                 const crypto = data.crypto || 'XRP';
-                let explorerUrl = '';
-                let explorerName = '';
-                
+                let explorerUrl = '', explorerName = '';
                 if (crypto === 'XRP') {
-                    if (network === 'mainnet') {
-                        explorerUrl = 'https://xrpscan.com/account/';
-                        explorerName = 'XRPScan';
-                    } else {
-                        explorerUrl = 'https://testnet.xrpl.org/accounts/';
-                        explorerName = 'XRPL Testnet';
-                    }
+                    if (network === 'mainnet') { explorerUrl = 'https://xrpscan.com/account/'; explorerName = 'XRPScan'; }
+                    else { explorerUrl = 'https://testnet.xrpl.org/accounts/'; explorerName = 'XRPL Testnet'; }
                 } else {
-                    if (network === 'mainnet') {
-                        explorerUrl = 'https://stellar.expert/explorer/public/account/';
-                        explorerName = 'Stellar Expert';
-                    } else {
-                        explorerUrl = 'https://stellar.expert/explorer/testnet/account/';
-                        explorerName = 'Stellar Expert Testnet';
-                    }
+                    if (network === 'mainnet') { explorerUrl = 'https://stellar.expert/explorer/public/account/'; explorerName = 'Stellar Expert'; }
+                    else { explorerUrl = 'https://stellar.expert/explorer/testnet/account/'; explorerName = 'Stellar Expert Testnet'; }
                 }
-                
                 const link = document.getElementById('ricevi-explorer-link');
                 link.href = explorerUrl + data.address;
                 link.textContent = '🔗 ' + explorerName;
                 document.getElementById('ricevi-explorer-text').textContent = data.address;
-                
             } catch (e) {
                 loading.textContent = '❌ Errore: ' + e.message;
                 console.error('Errore QR Code:', e);
@@ -904,59 +842,49 @@
             }
         }
         
-        // ============================================================
-        // STORICO
-        // ============================================================
-        
         async function loadHistory() {
             const tbody = document.getElementById('history-body');
             const summary = document.getElementById('history-summary');
-            tbody.innerHTML = '<tr><td colspan="6" style="padding: 20px; text-align: center; color: #888;">⏳ Caricamento...</td></tr>';
-            
+            const limit = document.getElementById('history-limit')?.value || 20;
+            tbody.innerHTML = '<tr><td colspan="7" style="padding: 20px; text-align: center; color: #888;">⏳ Caricamento...</td></tr>';
             try {
-                const resp = await fetch('/api/wallet/history');
+                const resp = await fetch('/api/wallet/history?limit=' + limit);
                 const data = await resp.json();
-                
                 if (data.error) {
-                    tbody.innerHTML = `<tr><td colspan="6" style="padding: 20px; text-align: center; color: #ff4757;">❌ ${data.error}</td></tr>`;
+                    tbody.innerHTML = '<tr><td colspan="7" style="padding: 20px; text-align: center; color: #ff4757;">❌ ' + data.error + '</td></tr>';
                     return;
                 }
-                
                 const transactions = data.transactions || [];
-                
                 if (transactions.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6" style="padding: 20px; text-align: center; color: #888;">📭 Nessuna transazione trovata</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="7" style="padding: 20px; text-align: center; color: #888;">📭 Nessuna transazione trovata</td></tr>';
                 } else {
                     tbody.innerHTML = transactions.map(tx => {
                         const isIncoming = tx.type === 'RICEVUTO';
                         const isOutgoing = tx.type === 'INVIATO';
                         const color = isIncoming ? '#2ed573' : (isOutgoing ? '#ff6b81' : '#ffd93d');
                         const icon = isIncoming ? '⬇️' : (isOutgoing ? '⬆️' : '🔄');
-                        return `<tr>
-                            <td>${tx.index || '-'}</td>
-                            <td style="white-space: nowrap;">${tx.date || '-'}</td>
-                            <td style="color: ${color}; font-weight: bold;">${icon} ${tx.type || '-'}</td>
-                            <td style="text-align: right; color: ${color};">${tx.amount || '-'}</td>
-                            <td style="text-align: right; color: #888;">${tx.fee || '-'}</td>
-                            <td style="font-size: 12px; word-break: break-all;">${tx.from_to || '-'}</td>
-                        </tr>`;
+                        const memo = tx.memo || '';
+                        const memoDisplay = memo ? '📝 ' + memo.substring(0, 64) + (memo.length > 64 ? '...' : '') : '';
+                        return '<tr>' +
+                            '<td>' + (tx.index || '-') + '</td>' +
+                            '<td style="white-space: nowrap;">' + (tx.date || '-') + '</td>' +
+                            '<td style="color: ' + color + '; font-weight: bold;">' + icon + ' ' + (tx.type || '-') + '</td>' +
+                            '<td style="text-align: right; color: ' + color + ';">' + (tx.amount || '-') + '</td>' +
+                            '<td style="text-align: right; color: #888;">' + (tx.fee || '-') + '</td>' +
+                            '<td style="font-size: 12px; word-break: break-all;">' + (tx.from_to || '-') + '</td>' +
+                            '<td style="font-size: 12px; color: #00d4ff; min-width: 150px; max-width: 400px; word-break: break-word;">' + memoDisplay + '</td>' +
+                        '</tr>';
                     }).join('');
                 }
-                
                 const crypto = data.crypto || 'XRP';
                 const network = data.network || 'testnet';
                 const balance = data.balance !== undefined ? data.balance.toFixed(6) + ' ' + crypto : '---';
-                summary.textContent = `🔗 ${network.toUpperCase()} | ${crypto} | Totale: ${transactions.length} transazioni | Saldo: ${balance}`;
-                
+                summary.textContent = '🔗 ' + network.toUpperCase() + ' | ' + crypto + ' | Mostrate: ' + transactions.length + ' transazioni | Saldo: ' + balance;
             } catch (e) {
                 console.error('Errore loadHistory:', e);
-                tbody.innerHTML = `<tr><td colspan="6" style="padding: 20px; text-align: center; color: #ff4757;">❌ Errore caricamento storico: ${e.message}</td></tr>`;
+                tbody.innerHTML = '<tr><td colspan="7" style="padding: 20px; text-align: center; color: #ff4757;">❌ Errore caricamento storico: ' + e.message + '</td></tr>';
             }
         }
-        
-        // ============================================================
-        // INVIO (XRP e XLM)
-        // ============================================================
         
         async function sendPayment() {
             const dest = document.getElementById('send-dest').value.trim();
@@ -967,46 +895,38 @@
             const progressBar = document.getElementById('send-progress-bar');
             const statusText = document.getElementById('send-status');
             const crypto = document.getElementById('crypto-select').value;
-            
             if (!dest || !amount) {
                 showMessage('❌ Inserisci destinazione e importo', 'error');
                 return;
             }
-            
             progress.style.display = 'block';
             progressBar.style.width = '0%';
             statusText.textContent = '⏳ Verifica destinatario...';
             sendBtn.disabled = true;
             sendBtn.textContent = '⏳ Invio...';
-            
             try {
                 progressBar.style.width = '20%';
-                
                 const contacts = await fetch('/api/contacts/list').then(r => r.json());
                 const contact = (contacts.contacts || []).find(c => c.nome.toLowerCase() === dest.toLowerCase());
                 if (contact) {
                     document.getElementById('send-dest').value = contact.indirizzo;
                     statusText.textContent = '📒 Contatto risolto';
                 }
-                
                 progressBar.style.width = '50%';
                 statusText.textContent = '📡 Invio transazione...';
-                
                 const resp = await fetch('/api/wallet/send', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        destination: document.getElementById('send-dest').value.trim(), 
-                        amount: parseFloat(amount), 
+                    body: JSON.stringify({
+                        destination: document.getElementById('send-dest').value.trim(),
+                        amount: parseFloat(amount),
                         memo: memo,
                         crypto: crypto
                     })
                 });
                 const data = await resp.json();
-                
                 progressBar.style.width = '80%';
                 statusText.textContent = '⏳ Attendere conferma...';
-                
                 if (data.success) {
                     progressBar.style.width = '100%';
                     statusText.textContent = '✅ Transazione completata!';
@@ -1033,57 +953,46 @@
             }
         }
         
-        // ============================================================
-        // RUBRICA (con crypto e network)
-        // ============================================================
-        
         async function loadContacts() {
             const container = document.getElementById('contacts-list');
             container.innerHTML = '<div class="empty">⏳ Caricamento...</div>';
-            
             try {
                 const resp = await fetch('/api/contacts/list');
                 const data = await resp.json();
-                
                 if (data.error) {
-                    container.innerHTML = `<div class="empty" style="color: #ff4757;">❌ ${data.error}</div>`;
+                    container.innerHTML = '<div class="empty" style="color: #ff4757;">❌ ' + data.error + '</div>';
                     return;
                 }
-                
                 const contacts = data.contacts || [];
                 const currentCrypto = data.crypto || 'XRP';
                 const currentNetwork = data.network || 'testnet';
-                
                 if (contacts.length === 0) {
-                    container.innerHTML = `<div class="empty">📭 Nessun contatto per ${currentCrypto} su ${currentNetwork.toUpperCase()}</div>`;
+                    container.innerHTML = '<div class="empty">📭 Nessun contatto per ' + currentCrypto + ' su ' + currentNetwork.toUpperCase() + '</div>';
                     return;
                 }
-                
                 container.innerHTML = contacts.map(c => {
                     const crypto = c.crypto || 'XRP';
                     const network = c.network || 'testnet';
                     const badgeClass = crypto === 'XRP' ? 'badge-xrp' : 'badge-xlm';
-                    return `
-                    <div class="contact-item">
-                        <div class="contact-info">
-                            <div class="contact-name">${c.nome || '?'}</div>
-                            <div class="contact-address">${c.indirizzo || 'N/A'}</div>
-                            <div class="contact-meta">
-                                <span class="badge ${badgeClass}" style="font-size:10px;">${crypto}</span>
-                                <span class="badge ${network === 'mainnet' ? 'badge-mainnet' : 'badge-testnet'}" style="font-size:10px;">${network.toUpperCase()}</span>
-                                ${c.note ? `📝 ${c.note}` : ''}
-                            </div>
-                        </div>
-                        <div class="contact-actions">
-                            <button class="btn btn-sm" onclick="useContact('${c.indirizzo}')">📤 Usa</button>
-                            <button class="btn btn-danger btn-sm" onclick="deleteContact('${c.nome}')">🗑️</button>
-                        </div>
-                    </div>
-                `}).join('');
-                
+                    return '<div class="contact-item">' +
+                        '<div class="contact-info">' +
+                            '<div class="contact-name">' + (c.nome || '?') + '</div>' +
+                            '<div class="contact-address">' + (c.indirizzo || 'N/A') + '</div>' +
+                            '<div class="contact-meta">' +
+                                '<span class="badge ' + badgeClass + '" style="font-size:10px;">' + crypto + '</span>' +
+                                '<span class="badge ' + (network === 'mainnet' ? 'badge-mainnet' : 'badge-testnet') + '" style="font-size:10px;">' + network.toUpperCase() + '</span>' +
+                                (c.note ? '📝 ' + c.note : '') +
+                            '</div>' +
+                        '</div>' +
+                        '<div class="contact-actions">' +
+                            '<button class="btn btn-sm" onclick="useContact(\'' + c.indirizzo + '\')">📤 Usa</button>' +
+                            '<button class="btn btn-danger btn-sm" onclick="deleteContact(\'' + c.nome + '\')">🗑️</button>' +
+                        '</div>' +
+                    '</div>';
+                }).join('');
             } catch (e) {
                 console.error('Errore loadContacts:', e);
-                container.innerHTML = `<div class="empty" style="color: #ff4757;">❌ Errore caricamento contatti</div>`;
+                container.innerHTML = '<div class="empty" style="color: #ff4757;">❌ Errore caricamento contatti</div>';
             }
         }
         
@@ -1093,28 +1002,17 @@
             const crypto = document.getElementById('contact-crypto').value;
             const network = document.getElementById('contact-network').value;
             const note = document.getElementById('contact-note').value.trim();
-            
             if (!name || !address) {
                 showMessage('❌ Inserisci nome e indirizzo', 'error');
                 return;
             }
-            
             try {
                 const resp = await fetch('/api/contacts/add', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        name: name, 
-                        address: address, 
-                        note: note,
-                        crypto: crypto,
-                        network: network,
-                        keyword: '',
-                        index: 0
-                    })
+                    body: JSON.stringify({ name, address, note, crypto, network, keyword: '', index: 0 })
                 });
                 const data = await resp.json();
-                
                 if (data.success) {
                     showMessage('✅ ' + data.message, 'success');
                     document.getElementById('contact-name').value = '';
@@ -1130,10 +1028,7 @@
         }
         
         async function deleteContact(name) {
-            if (!confirm(`⚠️ Eliminare il contatto '${name}'?`)) {
-                return;
-            }
-            
+            if (!confirm('⚠️ Eliminare il contatto "' + name + '"?')) return;
             try {
                 const resp = await fetch('/api/contacts/delete', {
                     method: 'POST',
@@ -1141,7 +1036,6 @@
                     body: JSON.stringify({ name: name, crypto: document.getElementById('crypto-select').value })
                 });
                 const data = await resp.json();
-                
                 if (data.success) {
                     showMessage('✅ ' + data.message, 'success');
                     loadContacts();
@@ -1157,10 +1051,6 @@
             document.getElementById('send-dest').value = address;
             showMessage('📤 Indirizzo inserito nel campo destinazione', 'info');
         }
-        
-        // ============================================================
-        // CARICAMENTO INIZIALE
-        // ============================================================
         
         loadInfo();
         loadHistory();

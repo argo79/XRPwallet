@@ -234,6 +234,10 @@ pyinstaller --onefile \
     --add-data "commands:commands" \
     --add-data "utils:utils" \
     --add-data "node_modules:node_modules" \
+    --add-data "ui_cli.py:." \
+    --add-data "ui_web.py:." \
+    --add-data "cli.py:." \
+    --add-data "wallet_manager.py:." \
     --add-data "$DEF_FILE:xrpl/core/binarycodec/definitions" \
     --hidden-import flask \
     --hidden-import qrcode \

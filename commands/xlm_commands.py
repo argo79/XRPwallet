@@ -166,7 +166,7 @@ def send_xlm(cli_instance, args):
         if memo_id is not None:
             builder.add_memo(IdMemo(memo_id))
         elif memo_text:
-            builder.add_memo(TextMemo(memo_text[:28]))
+            builder.add_memo(TextMemo(memo_text[:64]))
 
         # Firma e invia
         transaction = builder.build()
@@ -204,6 +204,22 @@ def history_xlm(cli_instance, args):
         print("❌ Nessun wallet caricato. Usa 'wallet NOME'.")
         return
 
+    # 🔑 PARSE --limit
+    limit = 100
+    clean_args = []
+    i = 0
+    while i < len(args):
+        if args[i] == "--limit" or args[i] == "-l":
+            if i + 1 < len(args) and args[i + 1].isdigit():
+                limit = int(args[i + 1])
+                i += 2
+                continue
+            else:
+                i += 1
+                continue
+        clean_args.append(args[i])
+        i += 1
+
     try:
         address = cli_instance.manager.get_address()
         wallet_name = get_wallet_display(cli_instance.active_wallet_name_file)
@@ -212,6 +228,7 @@ def history_xlm(cli_instance, args):
         print("=" * 80)
         print(f"Wallet:    {wallet_name}")
         print(f"Indirizzo: {address}")
+        print(f"Limite:    {limit} transazioni")
         print("=" * 80)
 
         if cli_instance._network == "mainnet":
@@ -219,8 +236,8 @@ def history_xlm(cli_instance, args):
         else:
             horizon_url = "https://horizon-testnet.stellar.org"
 
-        # Ottieni transazioni con paginazione
-        url = f"{horizon_url}/accounts/{address}/payments?limit=10&order=desc"
+        # 🔑 LIMITE DINAMICO
+        url = f"{horizon_url}/accounts/{address}/payments?limit={limit}&order=desc"
         logger.info(f"Richiesta Horizon: {url}")
         
         response = requests.get(url, timeout=30)
@@ -257,7 +274,8 @@ def history_xlm(cli_instance, args):
             'inflation': 'Inflazione'
         }
 
-        for idx, payment in enumerate(payments[:10], 1):
+        # 🔑 MOSTRA SOLO FINO AL LIMITE
+        for idx, payment in enumerate(payments[:limit], 1):
             created_at = payment.get('created_at', '')
             date_str = created_at.replace('T', ' ').replace('Z', '')[:19] if created_at else ''
             op_type = payment.get('type', 'unknown')
@@ -273,13 +291,13 @@ def history_xlm(cli_instance, args):
                 from_acct = payment.get('from', '')
                 to_acct = payment.get('to', '')
                 
-                # 🔑 INDIRIZZI COMPLETI - RIMOSSO format_address()
+                # 🔑 INDIRIZZI COMPLETI
                 if to_acct == address:
-                    from_to = f"Da: {from_acct}"  # COMPLETO
+                    from_to = f"Da: {from_acct}"
                 elif from_acct == address:
-                    from_to = f"A: {to_acct}"     # COMPLETO
+                    from_to = f"A: {to_acct}"
                 else:
-                    from_to = f"{from_acct} → {to_acct}"  # ENTRAMBI COMPLETI
+                    from_to = f"{from_acct} → {to_acct}"
                 amount_str = f"{amount:.6f} {asset_code}"
 
             elif op_type == 'create_account':
@@ -321,8 +339,13 @@ def history_xlm(cli_instance, args):
                 from_to = payment.get('source_account', '')
                 amount_str = ""
 
-            # 🔑 STAMPA INDIRIZZO COMPLETO
-            print(f"│ {idx:<2} │ {date_str[:19]:<19} │ {display_type:<14} │ {amount_str:<30} │ {from_to:<100} │")
+            # 🔑 TRONCA SOLO PER DISPLAY SE L'INDIRIZZO È TROPPO LUNGO
+            if len(from_to) > 100:
+                from_to_display = from_to[:50] + "..." + from_to[-50:]
+            else:
+                from_to_display = from_to
+
+            print(f"│ {idx:<2} │ {date_str[:19]:<19} │ {display_type:<14} │ {amount_str:<30} │ {from_to_display:<100} │")
 
         print("└────┴─────────────────────┴────────────────┴──────────────┴────────────────────────────────────────────────────────────────────────────────────────────────────┘")
 
@@ -336,6 +359,9 @@ def history_xlm(cli_instance, args):
         # Saldo attuale
         balance = cli_instance.manager.get_balance()
         print(f"💰 Saldo attuale: {balance:.6f} XLM")
+
+        # 🔑 STATISTICHE
+        print(f"📊 Mostrate {min(len(payments), limit)} di {len(payments)} transazioni")
 
     except requests.exceptions.Timeout:
         print("❌ Timeout nella richiesta a Horizon")

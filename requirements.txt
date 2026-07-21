@@ -1,0 +1,43 @@
+# ============================================================
+# XRP WALLET MANAGER - REQUISITI
+# ============================================================
+
+# Core XRP Ledger
+xrpl-py>=4.0.0
+
+# Wallet e chiavi
+mnemonic>=0.20
+bip32>=4.0.0
+base58>=2.1.0
+ecdsa>=0.19.0
+
+# Crittografia
+cryptography>=41.0.0
+
+# Web Interface (Flask)
+Flask>=3.0.0
+Flask-Session>=0.5.0
+
+# Utility
+requests>=2.31.0
+python-dotenv>=1.0.0
+
+# ============================================================
+# PER SVILUPPO (opzionali)
+# ============================================================
+
+# Per TUI (Terminal User Interface)
+# curses è già incluso in Python, ma su Windows serve:
+# windows-curses>=2.3.0; sys_platform == 'win32'
+
+# Per debug e sviluppo
+ipython>=8.0.0
+pytest>=7.0.0
+black>=23.0.0
+
+# ============================================================
+# PER Node.js bridge (Xaman 8x6 numbers)
+# ============================================================
+# Necessario per il bridge con xrpl-secret-numbers
+# nodejs >= 14.0.0 (installare separatamente)
+# npm install xrpl-secret-numbers (eseguito dal codice)

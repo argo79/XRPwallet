@@ -985,21 +985,40 @@ class XRPCLI:
                 "destination": destination,
             }
 
+            # 🔑 GESTIONE MEMO CORRETTA - USA HEX NON BASE64!
             if memo_text:
                 if len(memo_text) > 1024:
                     print("❌ Memo troppo lungo (max 1024 caratteri)")
                     return
 
-                memo_data = base64.b64encode(memo_text.encode()).decode()
-                while len(memo_data) % 4 != 0:
-                    memo_data += '='
-
-                memo_obj = Memo(
-                    memo_data=memo_data,
-                    memo_type=None,
-                    memo_format=None
-                )
-                payment_params["memos"] = [memo_obj]
+                try:
+                    # Pulisci il memo (rimuovi caratteri non validi)
+                    memo_clean = memo_text.encode('utf-8', errors='ignore').decode('utf-8')
+                    
+                    # Converti in HEX (XRPL vuole hex!)
+                    memo_hex = memo_clean.encode('utf-8').hex()
+                    
+                    # Assicura che la lunghezza sia pari (hex deve essere multiplo di 2)
+                    if len(memo_hex) % 2 != 0:
+                        memo_hex = '0' + memo_hex
+                    
+                    # Limite 1024 bytes (2048 caratteri hex)
+                    if len(memo_hex) > 2048:
+                        memo_hex = memo_hex[:2048]
+                        print("⚠️  Memo troncato a 1024 bytes")
+                    
+                    memo_obj = Memo(
+                        memo_data=memo_hex,
+                        memo_type=None,
+                        memo_format=None
+                    )
+                    payment_params["memos"] = [memo_obj]
+                    print(f"📝 Memo codificato: {memo_clean}")
+                    
+                except Exception as e:
+                    print(f"⚠️  Errore codifica memo: {e}")
+                    print("   Il memo verrà ignorato")
+                    # Non aggiungere il memo
 
             payment = Payment(**payment_params)
 
@@ -1114,7 +1133,7 @@ class XRPCLI:
             self._show_xrp_history(args)
 
     def _show_xrp_history(self, args: List[str]) -> None:
-        limit = 10
+        limit = 100
         wallet_name = self._get_wallet_display()
 
         clean_args = []
@@ -1180,7 +1199,8 @@ class XRPCLI:
                 print("❌ Nessuna transazione trovata.")
                 return
 
-            self._print_transactions(transactions, address)
+            # 🔑 PASSA LA CRYPTO ALLA FUNZIONE DI STAMPA
+            self._print_transactions(transactions, address, crypto_type=self._crypto)
 
             if self._network == "testnet":
                 explorer = f"https://testnet.xrpl.org/accounts/{address}"
@@ -1198,13 +1218,22 @@ class XRPCLI:
                 explorer = f"https://xrpscan.com/account/{address}"
             print(f"\n🔗 Visualizza su: {explorer}")
 
-    def _print_transactions(self, transactions: List, address: str) -> None:
+    def _print_transactions(self, transactions: List, address: str, crypto_type: str = "XRP") -> None:
+        """Stampa le transazioni formattate con decodifica memo - Supporta XRP e XLM"""
         from datetime import datetime
         import base64
 
-        print("\n┌────┬─────────────────────┬────────────┬──────────────────┬────────────┬────────────────────────────────────────────┐")
-        print(f"│ #  │ Data/Ora            │ Tipo       │ Importo          │ Fee        │ Da/A                                        │")
-        print("├────┼─────────────────────┼────────────┼──────────────────┼────────────┼────────────────────────────────────────────┤")
+        # 🔑 ADATTA LA TABELLA IN BASE ALLA CRYPTO
+        if crypto_type == "XLM":
+            # Tabella compatta per XLM
+            print("\n┌────┬─────────────────────┬────────────────┬──────────────┬────────────┬──────────────────────────────────────────────────────────────┐")
+            print(f"│ #  │ Data/Ora            │ Tipo           │ Importo      │ Fee        │ Da/A                                                          │")
+            print("├────┼─────────────────────┼────────────────┼──────────────┼────────────┼──────────────────────────────────────────────────────────────┤")
+        else:
+            # Tabella XRP con memo più largo
+            print("\n┌────┬─────────────────────┬────────────┬──────────────────┬────────────┬──────────────────────────────────────────────────┬────────────────────┐")
+            print(f"│ #  │ Data/Ora            │ Tipo       │ Importo          │ Fee        │ Da/A                                              │ Memo               │")
+            print("├────┼─────────────────────┼────────────┼──────────────────┼────────────┼──────────────────────────────────────────────────┼────────────────────┤")
 
         for idx, tx_data in enumerate(transactions, 1):
             tx = tx_data.get("tx_json", {})
@@ -1227,14 +1256,24 @@ class XRPCLI:
             if tx_type == "Payment":
                 amount = tx.get("Amount", tx.get("DeliverMax", "0"))
 
+                # Gestione importi
                 if isinstance(amount, dict):
-                    amount_str = f"{amount.get('value', '?')} {amount.get('currency', '?')}"
+                    token_value = amount.get('value', '0')
+                    token_currency = amount.get('currency', '???')
+                    try:
+                        val_float = float(token_value)
+                        amount_str = f"{val_float:.6f}".rstrip('0').rstrip('.')
+                        if not amount_str:
+                            amount_str = "0"
+                        amount_str += f" {token_currency}"
+                    except:
+                        amount_str = f"{token_value[:8]} {token_currency}"
                 else:
                     try:
                         amount_xrp = int(amount) / 1_000_000
                         amount_str = f"{amount_xrp:.6f}".rstrip('0').rstrip('.')
-                        if '.' in amount_str:
-                            amount_str = amount_str[:12]
+                        if not amount_str:
+                            amount_str = "0"
                         amount_str += " XRP"
                     except:
                         amount_str = f"{amount} drops"
@@ -1250,26 +1289,59 @@ class XRPCLI:
                     da_a = f"A: {destination}"
                 else:
                     direction = "ALTRO"
-                    da_a = f"{sender[:10]}...→{destination[:10]}..."
+                    da_a = f"{sender} → {destination}"
 
-                memos = tx.get("Memos", [])
-                if memos:
-                    try:
-                        memo_dict = memos[0].get("Memo", {})
-                        memo_data = memo_dict.get("MemoData", "")
-                        if memo_data:
-                            while len(memo_data) % 4 != 0:
-                                memo_data += '='
-                            memo_text = base64.b64decode(memo_data).decode('utf-8', errors='ignore')
-                            da_a += f" 📝{memo_text[:12]}"
-                    except:
-                        pass
+                # 🔑 STAMPA IN BASE ALLA CRYPTO
+                if crypto_type == "XLM":
+                    # XLM - formato compatto
+                    if len(da_a) > 60:
+                        da_a_display = da_a[:28] + "..." + da_a[-28:]
+                    else:
+                        da_a_display = da_a
+                    print(f"│ {idx:<2} │ {date_str[:19]:<19} │ {direction:<10} │ {amount_str:<12} │ {fee_str:<10} │ {da_a_display:<60} │")
+                else:
+                    # 🔑 XRP - MEMO PIÙ LUNGO (32 CARATTERI)
+                    memo_display = ""
+                    memos = tx.get("Memos", [])
+                    if memos:
+                        try:
+                            memo_dict = memos[0].get("Memo", {})
+                            memo_data = memo_dict.get("MemoData", "")
+                            if memo_data:
+                                memo_text = ""
+                                try:
+                                    memo_bytes = bytes.fromhex(memo_data)
+                                    memo_text = memo_bytes.decode('utf-8', errors='ignore')
+                                except:
+                                    try:
+                                        while len(memo_data) % 4 != 0:
+                                            memo_data += '='
+                                        memo_bytes = base64.b64decode(memo_data)
+                                        memo_text = memo_bytes.decode('utf-8', errors='ignore')
+                                    except:
+                                        memo_text = memo_data[:20]
+                                
+                                if memo_text:
+                                    memo_clean = ''.join(c for c in memo_text if c.isprintable() or c == ' ')
+                                    if memo_clean.strip():
+                                        # 🔑 32 CARATTERI PER IL MEMO
+                                        memo_display = memo_clean[:256]
+                        except:
+                            pass
 
-                print(f"│ {idx:<2} │ {date_str[:19]:<19} │ {direction:<10} │ {amount_str:<16} │ {fee_str:<10} │ {da_a:<40} │")
+                    print(f"│ {idx:<2} │ {date_str[:19]:<19} │ {direction:<10} │ {amount_str:<16} │ {fee_str:<10} │ {da_a:<48} │ {memo_display:<18} │")
             else:
-                print(f"│ {idx:<2} │ {date_str[:19]:<19} │ {tx_type:<10} │ {'':<16} │ {fee_str:<10} │ {'':<40} │")
+                if crypto_type == "XLM":
+                    print(f"│ {idx:<2} │ {date_str[:19]:<19} │ {tx_type:<14} │ {'':<12} │ {fee_str:<10} │ {'':<60} │")
+                else:
+                    print(f"│ {idx:<2} │ {date_str[:19]:<19} │ {tx_type:<10} │ {'':<16} │ {fee_str:<10} │ {'':<48} │ {'':<18} │")
 
-        print("└────┴─────────────────────┴────────────┴──────────────────┴────────────┴────────────────────────────────────────────┘")
+        # 🔑 CHIUSURA TABELLA
+        if crypto_type == "XLM":
+            print("└────┴─────────────────────┴────────────────┴──────────────┴────────────┴──────────────────────────────────────────────────────────────┘")
+        else:
+            print("└────┴─────────────────────┴────────────┴──────────────────┴────────────┴──────────────────────────────────────────────────┴────────────────────┘")
+        
         print(f"Totale: {len(transactions)} transazioni mostrate")
 
     def _parse_tx_date(self, tx: Dict, tx_data: Dict) -> str:

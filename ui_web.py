@@ -37,10 +37,17 @@ class SecureXRPManager:
         self._load_config()
         
     def _load_config(self):
+        """Carica la configurazione web"""
         config_file = Path("web_config.json")
         if config_file.exists():
             with open(config_file) as f:
                 self.config = json.load(f)
+            # 🔑 SE USERS È VUOTO, AGGIUNGI ADMIN
+            if not self.config.get("users") or len(self.config["users"]) == 0:
+                self.config["users"] = {}
+                self.add_user("admin", "admin123")
+                self._save_config()
+                print("✅ Utente admin ricreato (password: admin123)")
         else:
             self.config = {
                 "users": {},
@@ -48,7 +55,9 @@ class SecureXRPManager:
                 "max_transfer": 1000,
                 "require_2fa": False
             }
+            self.add_user("admin", "admin123")
             self._save_config()
+            print("🔐 Utente admin creato (password: admin123)")
             
     def _save_config(self):
         with open("web_config.json", "w") as f:
@@ -206,21 +215,23 @@ def api_history():
         if crypto == "XLM":
             return api_history_xlm(address)
         
-        # XRP HISTORY
-        client = xrp_manager.cli.client
-        
         from xrpl.models.requests import AccountTx
         from xrpl.models.response import ResponseStatus
+        import base64
         
-        request = AccountTx(
+        limit = request.args.get('limit', 100, type=int)
+        if limit > 100:
+            limit = 100
+        
+        account_tx_request = AccountTx(
             account=address,
             ledger_index_min=-1,
             ledger_index_max=-1,
-            limit=20,
+            limit=limit,
             forward=False
         )
         
-        response = client.request(request)
+        response = xrp_manager.cli.client.request(account_tx_request)
         
         if response.status != ResponseStatus.SUCCESS:
             return jsonify({"error": response.status, "transactions": [], "balance": 0}), 200
@@ -229,7 +240,7 @@ def api_history():
         transactions = result.get("transactions", [])
         
         tx_list = []
-        for idx, tx_data in enumerate(transactions[:10], 1):
+        for idx, tx_data in enumerate(transactions[:limit], 1):
             tx = tx_data.get("tx_json", {})
             if not tx:
                 continue
@@ -241,18 +252,34 @@ def api_history():
                 if "date" in tx:
                     ledger_time = tx.get("date", 0)
                     if ledger_time:
+                        from datetime import datetime
                         date_obj = datetime.fromtimestamp(ledger_time + 946684800)
                         date_str = date_obj.strftime("%Y-%m-%d %H:%M:%S")
             except:
                 pass
             
+            # 🔑 GESTIONE IMPORTI - TRONCA TOKEN LUNGHI
             amount = tx.get("Amount", tx.get("DeliverMax", "0"))
             if isinstance(amount, dict):
-                amount_str = f"{amount.get('value', '?')} {amount.get('currency', '?')}"
+                token_value = amount.get('value', '0')
+                token_currency = amount.get('currency', '???')
+                try:
+                    val_float = float(token_value)
+                    amount_str = f"{val_float:.6f}".rstrip('0').rstrip('.')
+                    if not amount_str or amount_str == '0':
+                        amount_str = "0"
+                    # 🔑 TRONCA IL SIMBOLO SE È ESADECIMALE LUNGO
+                    if len(token_currency) > 8:
+                        token_currency = token_currency[:8]
+                    amount_str += f" {token_currency}"
+                except:
+                    amount_str = f"{token_value[:8]} {token_currency}"
             else:
                 try:
                     amount_xrp = int(amount) / 1_000_000
                     amount_str = f"{amount_xrp:.6f}".rstrip('0').rstrip('.')
+                    if not amount_str or amount_str == '0':
+                        amount_str = "0"
                     amount_str += " XRP"
                 except:
                     amount_str = f"{amount} drops"
@@ -261,6 +288,8 @@ def api_history():
             try:
                 fee_xrp = int(fee_drops) / 1_000_000
                 fee_str = f"{fee_xrp:.6f}".rstrip('0').rstrip('.')
+                if not fee_str or fee_str == '0':
+                    fee_str = "0"
                 fee_str += " XRP"
             except:
                 fee_str = fee_drops
@@ -278,13 +307,38 @@ def api_history():
                 direction = "ALTRO"
                 from_to = f"{sender} → {destination}"
             
+            # 🔑 DECODIFICA MEMO
+            memo_text = ""
+            memos = tx.get("Memos", [])
+            if memos:
+                try:
+                    memo_dict = memos[0].get("Memo", {})
+                    memo_data = memo_dict.get("MemoData", "")
+                    if memo_data:
+                        try:
+                            memo_bytes = bytes.fromhex(memo_data)
+                            memo_text = memo_bytes.decode('utf-8', errors='ignore')
+                        except:
+                            try:
+                                while len(memo_data) % 4 != 0:
+                                    memo_data += '='
+                                memo_bytes = base64.b64decode(memo_data)
+                                memo_text = memo_bytes.decode('utf-8', errors='ignore')
+                            except:
+                                memo_text = memo_data[:20]
+                        if memo_text:
+                            memo_text = ''.join(c for c in memo_text if c.isprintable() or c == ' ')
+                except:
+                    pass
+            
             tx_list.append({
                 "index": idx,
                 "date": date_str,
                 "type": direction,
                 "amount": amount_str,
                 "fee": fee_str,
-                "from_to": from_to
+                "from_to": from_to,
+                "memo": memo_text
             })
         
         balance = xrp_manager.cli.manager.get_balance()
@@ -295,14 +349,17 @@ def api_history():
             "balance": balance,
             "crypto": crypto,
             "network": xrp_manager.cli._network,
-            "count": len(tx_list)
+            "count": len(tx_list),
+            "limit": limit
         })
         
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return jsonify({"error": str(e), "transactions": [], "balance": 0}), 500
 
 def api_history_xlm(address):
-    """Storico XLM via Horizon"""
+    """Storico XLM via Horizon con MEMO"""
     try:
         import requests
         
@@ -311,6 +368,7 @@ def api_history_xlm(address):
         else:
             horizon_url = "https://horizon-testnet.stellar.org"
         
+        # 🔑 USA transactions API (include memo)
         url = f"{horizon_url}/accounts/{address}/transactions?limit=10&order=desc"
         response = requests.get(url, timeout=30)
         data = response.json()
@@ -325,9 +383,17 @@ def api_history_xlm(address):
             created_at = tx.get('created_at', '')
             date_str = created_at.replace('T', ' ').replace('Z', '')[:19] if created_at else ''
             
-            fee_stroops = int(tx.get('fee_charged', 0))
-            fee_xlm = fee_stroops / 10000000
+            # 🔑 LEGGI MEMO
+            memo_text = ""
+            memo_type = tx.get('memo_type', '')
+            if memo_type == 'text':
+                memo_text = tx.get('memo', '')
+            elif memo_type == 'id':
+                memo_text = f"ID: {tx.get('memo', '')}"
+            elif memo_type == 'hash':
+                memo_text = f"Hash: {tx.get('memo', '')[:16]}..."
             
+            # 🔑 OTTIENI OPERAZIONI
             ops_url = tx.get('_links', {}).get('operations', {}).get('href', '')
             operations = []
             if ops_url:
@@ -346,9 +412,11 @@ def api_history_xlm(address):
             if operations:
                 for op in operations:
                     op_type = op.get('type', '')
+                    
                     if op_type == 'payment':
                         amount = float(op.get('amount', 0))
-                        asset_code = "XLM" if op.get('asset_type', 'native') == 'native' else op.get('asset_code', '?')
+                        asset_type = op.get('asset_type', 'native')
+                        asset_code = "XLM" if asset_type == 'native' else op.get('asset_code', '?')
                         from_acct = op.get('from', '')
                         to_acct = op.get('to', '')
                         
@@ -361,26 +429,77 @@ def api_history_xlm(address):
                         else:
                             from_to = f"{from_acct} → {to_acct}"
                             direction = "ALTRO"
+                        
                         amount_str = f"{amount:.6f} {asset_code}"
                         break
+                        
                     elif op_type == 'create_account':
                         amount = float(op.get('starting_balance', 0))
                         to_acct = op.get('account', '')
-                        from_to = f"A: {to_acct}"
-                        direction = "RICEVUTO" if to_acct == address else "INVIATO"
+                        from_acct = op.get('funder', '')
+                        if to_acct == address:
+                            from_to = f"Da: {from_acct}"
+                            direction = "RICEVUTO"
+                        else:
+                            from_to = f"A: {to_acct}"
+                            direction = "INVIATO"
                         amount_str = f"{amount:.6f} XLM"
+                        break
+                        
+                    elif op_type == 'account_merge':
+                        into_acct = op.get('into', '')
+                        from_acct = op.get('account', '')
+                        from_to = f"{from_acct} → {into_acct}"
+                        amount_str = ""
+                        direction = "FUSIONE"
+                        break
+                        
+                    elif op_type in ['path_payment_strict_send', 'path_payment_strict_receive']:
+                        amount = float(op.get('amount', 0))
+                        from_acct = op.get('from', '')
+                        to_acct = op.get('to', '')
+                        if to_acct == address:
+                            from_to = f"Da: {from_acct}"
+                            direction = "RICEVUTO"
+                        else:
+                            from_to = f"A: {to_acct}"
+                            direction = "INVIATO"
+                        amount_str = f"{amount:.6f} XLM"
+                        break
+                        
+                    elif op_type in ['manage_sell_offer', 'manage_buy_offer']:
+                        selling = op.get('selling', {})
+                        buying = op.get('buying', {})
+                        if op_type == 'manage_sell_offer':
+                            from_to = f"Vende {selling.get('asset_code', 'XLM')}"
+                        else:
+                            from_to = f"Compra {buying.get('asset_code', 'XLM')}"
+                        amount_str = ""
+                        direction = "OFFERTA"
+                        break
+                    else:
+                        from_to = op.get('source_account', '')
+                        amount_str = ""
+                        direction = op_type[:14]
                         break
             else:
                 from_to = tx.get('source_account', '')
                 amount_str = tx.get('type', 'unknown')
+                direction = "TRANSAZIONE"
+            
+            # 🔑 FEE
+            fee_stroops = int(tx.get('fee_charged', 0))
+            fee_xlm = fee_stroops / 10000000
+            fee_str = f"{fee_xlm:.7f} XLM"
             
             tx_list.append({
                 "index": idx,
                 "date": date_str,
                 "type": direction,
                 "amount": amount_str,
-                "fee": f"{fee_xlm:.7f} XLM",
-                "from_to": from_to
+                "fee": fee_str,
+                "from_to": from_to,
+                "memo": memo_text  # 🔑 MEMO AGGIUNTO
             })
         
         balance = xrp_manager.cli.manager.get_balance()
@@ -395,6 +514,8 @@ def api_history_xlm(address):
         })
         
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return jsonify({"error": str(e), "transactions": [], "balance": 0}), 500
 
 @app.route('/api/wallet/send', methods=['POST'])
