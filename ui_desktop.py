@@ -6,14 +6,27 @@ ui_desktop.py - App desktop standalone con PySide6 (QT)
 import sys
 import os
 import threading
-import requests
+import time
 from pathlib import Path
 
-from PySide6.QtCore import QUrl, QTimer, Qt, QSettings
-from PySide6.QtWidgets import (QApplication, QMainWindow, QVBoxLayout, QWidget, 
-                               QStatusBar, QMessageBox)
-from PySide6.QtWebEngineWidgets import QWebEngineView, QWebEngineProfile, QWebEngineSettings
-from PySide6.QtGui import QIcon, QAction
+# 🔑 IMPOSTA VARIABILI D'AMBIENTE PRIMA DELL'IMPORT
+os.environ["QT_QPA_PLATFORM"] = "xcb"
+os.environ["QT_PLUGIN_PATH"] = os.path.join(os.path.dirname(sys.executable), "plugins")
+
+try:
+    from PySide6.QtCore import QUrl, QTimer, Qt, QSettings
+    from PySide6.QtWidgets import QApplication, QMainWindow, QStatusBar, QMessageBox
+    from PySide6.QtGui import QIcon, QAction
+    from PySide6.QtWebEngineWidgets import QWebEngineView
+    from PySide6.QtWebEngineCore import QWebEngineSettings, QWebEngineProfile
+except ImportError as e:
+    print(f"⚠️ Errore import PySide6: {e}")
+    os.environ["QT_QPA_PLATFORM"] = "offscreen"
+    from PySide6.QtCore import QUrl, QTimer, Qt, QSettings
+    from PySide6.QtWidgets import QApplication, QMainWindow, QStatusBar, QMessageBox
+    from PySide6.QtGui import QIcon, QAction
+    from PySide6.QtWebEngineWidgets import QWebEngineView
+    from PySide6.QtWebEngineCore import QWebEngineSettings, QWebEngineProfile
 
 from ui_web import app as flask_app
 
@@ -65,9 +78,20 @@ class DesktopWindow(QMainWindow):
         settings.setAttribute(QWebEngineSettings.AutoLoadImages, True)
         settings.setAttribute(QWebEngineSettings.ErrorPageEnabled, True)
         
+        # Configura profilo
+        try:
+            profile = QWebEngineProfile.defaultProfile()
+            profile.setPersistentStoragePath(os.path.join(os.path.expanduser("~"), ".xrpwallet", "webengine"))
+            profile.setPersistentCookiesPolicy(QWebEngineProfile.PersistentCookiesPolicy.ForcePersistentCookies)
+        except:
+            pass
+        
         # Abilita strumenti sviluppatore in debug
         if os.getenv("DEBUG", "0") == "1":
-            self.browser.page().setDevToolsPage(self.browser.page())
+            try:
+                self.browser.page().setDevToolsPage(self.browser.page())
+            except:
+                pass
         
         # Imposta il browser come widget centrale
         self.setCentralWidget(self.browser)
@@ -83,7 +107,7 @@ class DesktopWindow(QMainWindow):
         # Timer per aggiornare lo stato
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_status)
-        self.timer.start(5000)  # Ogni 5 secondi
+        self.timer.start(5000)
         
         # Ripristina stato finestra
         self.restore_window_state()
@@ -92,36 +116,24 @@ class DesktopWindow(QMainWindow):
         self.start_flask_server()
     
     def create_menu(self):
-        """Crea il menù dell'app"""
         menubar = self.menuBar()
         
-        # File menu
         file_menu = menubar.addMenu("📁 File")
-        
-        # Reload action
         reload_action = QAction("🔄 Ricarica", self)
         reload_action.setShortcut("Ctrl+R")
         reload_action.triggered.connect(self.refresh_page)
         file_menu.addAction(reload_action)
-        
         file_menu.addSeparator()
-        
-        # Exit action
         exit_action = QAction("❌ Esci", self)
         exit_action.setShortcut("Ctrl+Q")
         exit_action.triggered.connect(self.close)
         file_menu.addAction(exit_action)
         
-        # View menu
         view_menu = menubar.addMenu("👁️ Vista")
-        
-        # Fullscreen action
         fullscreen_action = QAction("⛶ Schermo intero", self)
         fullscreen_action.setShortcut("F11")
         fullscreen_action.triggered.connect(self.toggle_fullscreen)
         view_menu.addAction(fullscreen_action)
-        
-        # Zoom actions
         view_menu.addSeparator()
         
         zoom_in_action = QAction("🔍 Zoom +", self)
@@ -139,7 +151,6 @@ class DesktopWindow(QMainWindow):
         zoom_reset_action.triggered.connect(lambda: self.browser.setZoomFactor(1.0))
         view_menu.addAction(zoom_reset_action)
         
-        # Developer menu (solo in debug)
         if os.getenv("DEBUG", "0") == "1":
             view_menu.addSeparator()
             dev_action = QAction("🛠️ Strumenti sviluppatore", self)
@@ -147,21 +158,16 @@ class DesktopWindow(QMainWindow):
             dev_action.triggered.connect(self.open_dev_tools)
             view_menu.addAction(dev_action)
         
-        # Info menu
         help_menu = menubar.addMenu("ℹ️ Info")
-        
         about_action = QAction("📋 Informazioni", self)
         about_action.triggered.connect(self.show_about)
         help_menu.addAction(about_action)
-        
         help_menu.addSeparator()
-        
         website_action = QAction("🌐 Sito web", self)
         website_action.triggered.connect(lambda: self.browser.setUrl(QUrl("https://github.com/argo79/XRPwallet")))
         help_menu.addAction(website_action)
     
     def start_flask_server(self):
-        """Avvia il server Flask in un thread"""
         def run_flask():
             try:
                 flask_app.run(
@@ -171,38 +177,18 @@ class DesktopWindow(QMainWindow):
                     use_reloader=False,
                     threaded=True
                 )
-            except OSError as e:
-                if "Address already in use" in str(e):
-                    self.status.showMessage(f"⚠️ Porta {SERVER_PORT} già in uso. Riprova...")
-                    # Tentativo con porta diversa
-                    try:
-                        alternative_port = SERVER_PORT + 1
-                        flask_app.run(
-                            host=SERVER_HOST,
-                            port=alternative_port,
-                            debug=False,
-                            use_reloader=False,
-                            threaded=True
-                        )
-                        global SERVER_URL
-                        SERVER_URL = f"http://{SERVER_HOST}:{alternative_port}"
-                    except Exception as e2:
-                        self.status.showMessage(f"❌ Errore avvio server: {str(e2)[:30]}")
-                else:
-                    self.status.showMessage(f"❌ Errore avvio server: {str(e)[:30]}")
             except Exception as e:
-                self.status.showMessage(f"❌ Errore avvio server: {str(e)[:30]}")
+                self.status.showMessage(f"❌ Errore server: {str(e)[:30]}")
         
         self.flask_thread = threading.Thread(target=run_flask, daemon=True)
         self.flask_thread.start()
         
-        # Attendi che il server sia pronto
         self.status.showMessage("⏳ Avvio del server...")
         self._wait_for_server(MAX_RETRIES, RETRY_DELAY_MS / 1000.0)
     
     def _wait_for_server(self, retries, delay):
-        """Attende che il server sia pronto con backoff esponenziale"""
         try:
+            import requests
             response = requests.get(f"{SERVER_URL}/", timeout=1)
             if response.status_code == 200:
                 self.status.showMessage("✅ Server avviato")
@@ -215,17 +201,14 @@ class DesktopWindow(QMainWindow):
             QTimer.singleShot(int(delay * 1000), 
                             lambda: self._wait_for_server(retries - 1, delay * 1.3))
         else:
-            self.status.showMessage("⚠️ Server non risponde. Verifica connessione.")
-            # Prova comunque a caricare la pagina
+            self.status.showMessage("⚠️ Server non risponde")
             self.browser.setUrl(QUrl(SERVER_URL))
     
     def refresh_page(self):
-        """Ricarica la pagina"""
         self.browser.reload()
         self.status.showMessage("🔄 Pagina ricaricata", 2000)
     
     def toggle_fullscreen(self):
-        """Attiva/disattiva schermo intero"""
         if self.isFullScreen():
             self.showNormal()
             self.status.showMessage("⛶ Uscito da schermo intero", 2000)
@@ -234,32 +217,24 @@ class DesktopWindow(QMainWindow):
             self.status.showMessage("⛶ Schermo intero attivato", 2000)
     
     def open_dev_tools(self):
-        """Apre gli strumenti sviluppatore"""
-        self.browser.page().triggerAction(QWebEngineView.InspectElement)
-        self.status.showMessage("🛠️ Strumenti sviluppatore aperti", 2000)
+        try:
+            self.browser.page().triggerAction(QWebEngineView.InspectElement)
+            self.status.showMessage("🛠️ Strumenti sviluppatore aperti", 2000)
+        except:
+            pass
     
     def update_status(self):
-        """Aggiorna lo stato del server"""
         try:
+            import requests
             response = requests.get(f"{SERVER_URL}/", timeout=1)
             if response.status_code == 200:
-                # Controlla se la pagina è caricata
-                current_url = self.browser.url().toString()
-                if current_url == SERVER_URL or current_url.startswith(SERVER_URL):
-                    self.status.showMessage("✅ Server attivo")
-                else:
-                    self.status.showMessage("✅ Server attivo - Caricamento pagina...")
+                self.status.showMessage("✅ Server attivo")
             else:
-                self.status.showMessage(f"⚠️ Server risponde con {response.status_code}")
-        except requests.exceptions.ConnectionError:
+                self.status.showMessage(f"⚠️ Server: {response.status_code}")
+        except:
             self.status.showMessage("⚠️ Server non raggiungibile")
-        except requests.exceptions.Timeout:
-            self.status.showMessage("⏱️ Server timeout")
-        except Exception as e:
-            self.status.showMessage(f"⚠️ Errore: {str(e)[:20]}")
     
     def show_about(self):
-        """Mostra informazioni sull'app"""
         QMessageBox.about(
             self,
             "Informazioni",
@@ -267,30 +242,18 @@ class DesktopWindow(QMainWindow):
             <h2>💰 XRP/XLM Wallet Manager</h2>
             <p><b>Versione:</b> v2.0.1</p>
             <p><b>Autore:</b> Arg0net</p>
-            <p><b>Licenza:</b> MIT</p>
             <br>
             <p>Gestisci i tuoi wallet XRP e XLM con facilità</p>
             <p>🔗 <a href="https://github.com/argo79/XRPwallet">GitHub Repository</a></p>
-            <br>
-            <p><b>Server:</b> {SERVER_URL}</p>
-            <p><b>Stato:</b> {'✅ Attivo' if self._is_server_running() else '⚠️ Non disponibile'}</p>
             """
         )
-    
-    def _is_server_running(self):
-        """Verifica se il server è in esecuzione"""
-        try:
-            response = requests.get(f"{SERVER_URL}/", timeout=1)
-            return response.status_code == 200
-        except:
-            return False
     
     def save_window_state(self):
         """Salva lo stato della finestra"""
         settings = QSettings(ORGANIZATION_NAME, APPLICATION_NAME)
         settings.setValue("geometry", self.saveGeometry())
         settings.setValue("windowState", self.saveState())
-        settings.setValue("zoomFactor", self.browser.zoomFactor())
+        settings.setValue("zoomFactor", str(self.browser.zoomFactor()))
     
     def restore_window_state(self):
         """Ripristina lo stato della finestra"""
@@ -300,10 +263,20 @@ class DesktopWindow(QMainWindow):
         if settings.contains("windowState"):
             self.restoreState(settings.value("windowState"))
         if settings.contains("zoomFactor"):
-            self.browser.setZoomFactor(settings.value("zoomFactor", 1.0))
+            try:
+                # 🔑 CONVERTI STRINGA A FLOAT
+                zoom_str = settings.value("zoomFactor")
+                if isinstance(zoom_str, str):
+                    zoom_factor = float(zoom_str)
+                else:
+                    zoom_factor = float(zoom_str)
+                # 🔑 LIMITA LO ZOOM A VALORI SENSATI
+                if 0.5 <= zoom_factor <= 2.0:
+                    self.browser.setZoomFactor(zoom_factor)
+            except (ValueError, TypeError):
+                pass  # Ignora se non può convertire
     
     def closeEvent(self, event):
-        """Gestisce la chiusura della finestra"""
         reply = QMessageBox.question(
             self,
             "Conferma uscita",
@@ -313,17 +286,11 @@ class DesktopWindow(QMainWindow):
         )
         
         if reply == QMessageBox.Yes:
-            # Salva lo stato prima di chiudere
             self.save_window_state()
-            
-            # Pulisci le risorse del browser
             self.browser.setUrl(QUrl("about:blank"))
             self.browser.page().deleteLater()
-            
-            # Ferma il timer
             if self.timer:
                 self.timer.stop()
-            
             event.accept()
         else:
             event.ignore()
@@ -333,21 +300,14 @@ class DesktopWindow(QMainWindow):
 # ============================================================
 
 def main():
-    """Avvia l'applicazione desktop"""
-    
-    # Crea l'applicazione QT
     app_qt = QApplication(sys.argv)
     app_qt.setApplicationName(APPLICATION_NAME)
     app_qt.setOrganizationName(ORGANIZATION_NAME)
-    
-    # Imposta stile moderno
     app_qt.setStyle("Fusion")
     
-    # Crea e mostra la finestra
     window = DesktopWindow()
     window.show()
     
-    # Avvia il loop dell'app
     try:
         sys.exit(app_qt.exec())
     except KeyboardInterrupt:
