@@ -359,7 +359,7 @@ def api_history():
         return jsonify({"error": str(e), "transactions": [], "balance": 0}), 500
 
 def api_history_xlm(address):
-    """Storico XLM via Horizon con MEMO"""
+    """Storico XLM via Horizon con importi corretti usando /payments"""
     try:
         import requests
         
@@ -368,129 +368,111 @@ def api_history_xlm(address):
         else:
             horizon_url = "https://horizon-testnet.stellar.org"
         
-        # 🔑 USA transactions API (include memo)
-        url = f"{horizon_url}/accounts/{address}/transactions?limit=10&order=desc"
+        # 🔑 USA /payments CHE FUNZIONA
+        url = f"{horizon_url}/accounts/{address}/payments?limit=10&order=desc"
         response = requests.get(url, timeout=30)
         data = response.json()
         
         if response.status_code != 200:
             return jsonify({"error": "Errore Horizon", "transactions": [], "balance": 0}), 200
         
-        transactions = data.get('_embedded', {}).get('records', [])
+        payments = data.get('_embedded', {}).get('records', [])
         
         tx_list = []
-        for idx, tx in enumerate(transactions[:10], 1):
-            created_at = tx.get('created_at', '')
+        for idx, payment in enumerate(payments[:10], 1):
+            created_at = payment.get('created_at', '')
             date_str = created_at.replace('T', ' ').replace('Z', '')[:19] if created_at else ''
             
-            # 🔑 LEGGI MEMO
-            memo_text = ""
-            memo_type = tx.get('memo_type', '')
-            if memo_type == 'text':
-                memo_text = tx.get('memo', '')
-            elif memo_type == 'id':
-                memo_text = f"ID: {tx.get('memo', '')}"
-            elif memo_type == 'hash':
-                memo_text = f"Hash: {tx.get('memo', '')[:16]}..."
-            
-            # 🔑 OTTIENI OPERAZIONI
-            ops_url = tx.get('_links', {}).get('operations', {}).get('href', '')
-            operations = []
-            if ops_url:
-                try:
-                    ops_response = requests.get(ops_url, timeout=10)
-                    if ops_response.status_code == 200:
-                        ops_data = ops_response.json()
-                        operations = ops_data.get('_embedded', {}).get('records', [])
-                except:
-                    pass
-            
+            # 🔑 OTTIENI IL TIPO E L'IMPORTO DIRETTAMENTE DA PAYMENT
+            op_type = payment.get('type', 'unknown')
             amount_str = ""
             from_to = ""
             direction = "TRANSAZIONE"
+            memo_text = ""
             
-            if operations:
-                for op in operations:
-                    op_type = op.get('type', '')
-                    
-                    if op_type == 'payment':
-                        amount = float(op.get('amount', 0))
-                        asset_type = op.get('asset_type', 'native')
-                        asset_code = "XLM" if asset_type == 'native' else op.get('asset_code', '?')
-                        from_acct = op.get('from', '')
-                        to_acct = op.get('to', '')
-                        
-                        if to_acct == address:
-                            from_to = f"Da: {from_acct}"
-                            direction = "RICEVUTO"
-                        elif from_acct == address:
-                            from_to = f"A: {to_acct}"
-                            direction = "INVIATO"
-                        else:
-                            from_to = f"{from_acct} → {to_acct}"
-                            direction = "ALTRO"
-                        
-                        amount_str = f"{amount:.6f} {asset_code}"
-                        break
-                        
-                    elif op_type == 'create_account':
-                        amount = float(op.get('starting_balance', 0))
-                        to_acct = op.get('account', '')
-                        from_acct = op.get('funder', '')
-                        if to_acct == address:
-                            from_to = f"Da: {from_acct}"
-                            direction = "RICEVUTO"
-                        else:
-                            from_to = f"A: {to_acct}"
-                            direction = "INVIATO"
-                        amount_str = f"{amount:.6f} XLM"
-                        break
-                        
-                    elif op_type == 'account_merge':
-                        into_acct = op.get('into', '')
-                        from_acct = op.get('account', '')
-                        from_to = f"{from_acct} → {into_acct}"
-                        amount_str = ""
-                        direction = "FUSIONE"
-                        break
-                        
-                    elif op_type in ['path_payment_strict_send', 'path_payment_strict_receive']:
-                        amount = float(op.get('amount', 0))
-                        from_acct = op.get('from', '')
-                        to_acct = op.get('to', '')
-                        if to_acct == address:
-                            from_to = f"Da: {from_acct}"
-                            direction = "RICEVUTO"
-                        else:
-                            from_to = f"A: {to_acct}"
-                            direction = "INVIATO"
-                        amount_str = f"{amount:.6f} XLM"
-                        break
-                        
-                    elif op_type in ['manage_sell_offer', 'manage_buy_offer']:
-                        selling = op.get('selling', {})
-                        buying = op.get('buying', {})
-                        if op_type == 'manage_sell_offer':
-                            from_to = f"Vende {selling.get('asset_code', 'XLM')}"
-                        else:
-                            from_to = f"Compra {buying.get('asset_code', 'XLM')}"
-                        amount_str = ""
-                        direction = "OFFERTA"
-                        break
-                    else:
-                        from_to = op.get('source_account', '')
-                        amount_str = ""
-                        direction = op_type[:14]
-                        break
+            if op_type == 'payment':
+                amount = float(payment.get('amount', 0))
+                asset_type = payment.get('asset_type', 'native')
+                asset_code = "XLM" if asset_type == 'native' else payment.get('asset_code', '?')
+                from_acct = payment.get('from', '')
+                to_acct = payment.get('to', '')
+                
+                if to_acct == address:
+                    from_to = f"Da: {from_acct}"
+                    direction = "RICEVUTO"
+                elif from_acct == address:
+                    from_to = f"A: {to_acct}"
+                    direction = "INVIATO"
+                else:
+                    from_to = f"{from_acct} → {to_acct}"
+                    direction = "ALTRO"
+                
+                amount_str = f"{amount:.6f} {asset_code}"
+                
+                # 🔑 MEMO VIENE DALLA TRANSAZIONE ASSOCIATA
+                # Proviamo a prenderlo dai _links
+                tx_link = payment.get('_links', {}).get('transaction', {}).get('href', '')
+                if tx_link:
+                    try:
+                        tx_resp = requests.get(tx_link, timeout=5)
+                        if tx_resp.status_code == 200:
+                            tx_data = tx_resp.json()
+                            memo_type = tx_data.get('memo_type', '')
+                            if memo_type == 'text':
+                                memo_text = tx_data.get('memo', '')
+                            elif memo_type == 'id':
+                                memo_text = f"ID: {tx_data.get('memo', '')}"
+                    except:
+                        pass
+                
+            elif op_type == 'create_account':
+                amount = float(payment.get('starting_balance', 0))
+                to_acct = payment.get('account', '')
+                from_acct = payment.get('funder', '')
+                if to_acct == address:
+                    from_to = f"Da: {from_acct}"
+                    direction = "RICEVUTO"
+                else:
+                    from_to = f"A: {to_acct}"
+                    direction = "INVIATO"
+                amount_str = f"{amount:.6f} XLM"
+                
+            elif op_type == 'account_merge':
+                into_acct = payment.get('into', '')
+                from_acct = payment.get('account', '')
+                from_to = f"{from_acct} → {into_acct}"
+                amount_str = ""
+                direction = "FUSIONE"
+                
+            elif op_type in ['path_payment_strict_send', 'path_payment_strict_receive']:
+                amount = float(payment.get('amount', 0))
+                from_acct = payment.get('from', '')
+                to_acct = payment.get('to', '')
+                if to_acct == address:
+                    from_to = f"Da: {from_acct}"
+                    direction = "RICEVUTO"
+                else:
+                    from_to = f"A: {to_acct}"
+                    direction = "INVIATO"
+                amount_str = f"{amount:.6f} XLM"
+                
+            elif op_type in ['manage_sell_offer', 'manage_buy_offer']:
+                selling = payment.get('selling', {})
+                buying = payment.get('buying', {})
+                if op_type == 'manage_sell_offer':
+                    from_to = f"Vende {selling.get('asset_code', 'XLM')}"
+                else:
+                    from_to = f"Compra {buying.get('asset_code', 'XLM')}"
+                amount_str = ""
+                direction = "OFFERTA"
+                
             else:
-                from_to = tx.get('source_account', '')
-                amount_str = tx.get('type', 'unknown')
-                direction = "TRANSAZIONE"
+                from_to = payment.get('source_account', '')
+                amount_str = ""
+                direction = op_type[:14]
             
-            # 🔑 FEE
-            fee_stroops = int(tx.get('fee_charged', 0))
-            fee_xlm = fee_stroops / 10000000
-            fee_str = f"{fee_xlm:.7f} XLM"
+            # 🔑 FEE (stimata, Horizon non la dà nei payments)
+            fee_str = "0.0000100 XLM"
             
             tx_list.append({
                 "index": idx,
@@ -499,7 +481,7 @@ def api_history_xlm(address):
                 "amount": amount_str,
                 "fee": fee_str,
                 "from_to": from_to,
-                "memo": memo_text  # 🔑 MEMO AGGIUNTO
+                "memo": memo_text
             })
         
         balance = xrp_manager.cli.manager.get_balance()
@@ -937,6 +919,26 @@ def api_contacts_all():
         return jsonify({"success": True, "contacts": contacts})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@app.route('/api/donate/info')
+@login_required
+def api_donate_info():
+    """Restituisce gli indirizzi per le donazioni"""
+    return jsonify({
+        "xrp": {
+            "mainnet": "rBKbetm51vuQQfg4Yo8fvweRya7gedcr9J",      # 🔑 METTI IL TUO INDIRIZZO XRP MAINNET
+            "testnet": "r93Yu6oRvwahF264kpAMtqVk5WGa12Xpxb"       # 🔑 METTI IL TUO INDIRIZZO XRP TESTNET
+        },
+        "xlm": {
+            "mainnet": "GAHIVF4DGY6YAB42P6OTXYNQWROIPHJ2HGE4WLWNMYPPFBDYF3QI2ZNW",  # 🔑 METTI IL TUO INDIRIZZO XLM MAINNET
+            "testnet": "GBZ6353S4ZEGQMYZVXD7N74DKFDJNVRTXY5EWBMXIVBRRY2P4AEW5RAI"   # 🔑 METTI IL TUO INDIRIZZO XLM TESTNET
+        },
+        "suggested": {
+            "xrp": 1.0,
+            "xlm": 5.0
+        },
+        "message": "Supporta lo sviluppo di XRPWallet! ❤️"
+    })
 
 
 if __name__ == "__main__":

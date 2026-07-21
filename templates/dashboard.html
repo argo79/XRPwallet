@@ -12,7 +12,7 @@
         
         .header { background: #16213e; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
         .header h1 { color: #00d4ff; text-align: center; }
-        .nav { display: flex; gap: 10px; margin: 10px 0; flex-wrap: wrap; }
+        .nav { display: flex; gap: 10px; margin: 10px 0; flex-wrap: wrap; justify-content: center; }
         .nav button { 
             padding: 10px 15px; 
             background: #0f3460; 
@@ -25,9 +25,11 @@
         }
         .nav button:hover { background: #1a4f8a; }
         .nav button.active { background: #00d4ff; color: #000; }
-        #network-info { color: #888; margin-top: 5px; }
+        .nav .btn-donate { background: #ff6b35; color: #fff; }
+        .nav .btn-donate:hover { background: #e55a2b; }
+        #network-info { color: #888; margin-top: 5px; text-align: center; }
         
-        .crypto-selector { display: flex; gap: 10px; margin: 10px 0; flex-wrap: wrap; align-items: center; }
+        .crypto-selector { display: flex; gap: 10px; margin: 10px 0; flex-wrap: wrap; align-items: center; justify-content: center; }
         .crypto-selector select { 
             padding: 8px 12px; 
             background: #0a0a1a; 
@@ -261,6 +263,18 @@
         .history-controls select { padding: 5px 10px; background: #0a0a1a; border: 1px solid #333; color: #fff; border-radius: 5px; font-family: monospace; }
         #history-table th:last-child { color: #00d4ff; font-weight: bold; }
         #history-table td:last-child { color: #00d4ff; min-width: 150px; max-width: 400px; word-break: break-word; }
+        
+        .donate-card { padding: 20px; border-radius: 10px; background: #0f3460; }
+        .donate-card-xrp { border-left: 4px solid #00aaff; }
+        .donate-card-xlm { border-left: 4px solid #00ff88; }
+        .donate-current-info { background: #0a0a1a; padding: 10px 15px; border-radius: 8px; margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+        .donate-preset-btn { padding: 5px 12px; border-radius: 4px; border: none; cursor: pointer; font-family: monospace; font-size: 12px; font-weight: bold; transition: all 0.3s; }
+        .donate-preset-btn-xrp { background: #00aaff; color: #000; }
+        .donate-preset-btn-xrp:hover { background: #0088cc; }
+        .donate-preset-btn-xlm { background: #00ff88; color: #000; }
+        .donate-preset-btn-xlm:hover { background: #00cc66; }
+        .donate-preset-btn-custom { background: #ffaa00; color: #000; }
+        .donate-preset-btn-custom:hover { background: #cc8800; }
     </style>
 </head>
 <body>
@@ -290,6 +304,7 @@
                 <button onclick="toggleSection('rubrica')">📒 Rubrica</button>
                 <button onclick="toggleSection('wallets')">📂 Wallet</button>
                 <button onclick="toggleSection('gestione')">🔧 Gestione</button>
+                <button onclick="toggleSection('donate')" class="btn-donate">☕ Donazione</button>
                 <a href="{{ url_for('logout') }}" style="padding: 10px 15px; background: #ff4757; color: #fff; border: none; border-radius: 5px; cursor: pointer; text-decoration: none; font-family: monospace;">🚪 Logout</a>
             </div>
             <div id="network-info" style="color: #888; margin-top: 5px;"></div>
@@ -339,7 +354,7 @@
                     </div>
                     <div class="btn-group-qr">
                         <button class="btn btn-sm" onclick="downloadQRCode()">💾 Scarica PNG</button>
-                        <button class="btn btn-sm" onclick="copyAddress()">📋 Copia indirizzo</button>
+                        <button class="btn btn-sm" onclick="copyAddressRicevi()">📋 Copia indirizzo</button>
                     </div>
                 </div>
                 
@@ -434,6 +449,45 @@
             </div>
         </div>
         
+        <div id="section-donate" class="section">
+            <h3>☕ Buy Me a Coffee</h3>
+            <p style="color: #ccc; margin-bottom: 20px; font-size: 14px; line-height: 1.6;">
+                Se XRPWallet ti è utile e ti piace come gestisce i tuoi wallet XRP e XLM, 
+                considera una piccola donazione per supportare lo sviluppo continuo. 
+                Ogni contributo, anche minimo, aiuta a mantenere il progetto attivo, 
+                aggiungere nuove funzionalità e migliorare l'esperienza per tutti gli utenti.
+                <br><br>
+                ❤️ Grazie per il tuo supporto!
+            </p>
+            
+            <div class="donate-current-info">
+                <span style="color: #888;">🔗 Rete:</span>
+                <span id="donate-current-network" style="color: #00d4ff; font-weight: bold;">MAINNET</span>
+                <span style="color: #888; margin-left: 10px;">🪙 Crypto:</span>
+                <span id="donate-current-crypto" style="color: #00d4ff; font-weight: bold;">XRP</span>
+                <span style="color: #555; margin-left: 10px; font-size: 12px;">(Scegli un importo e clicca su Invia)</span>
+            </div>
+            
+            <div id="donate-info" style="display: flex; flex-wrap: wrap; gap: 20px;">
+                <div id="donate-card" style="flex: 1; min-width: 300px; padding: 20px; border-radius: 10px; background: #0f3460; border-left: 4px solid #00aaff;">
+                    <h4 id="donate-title" style="color: #00aaff; margin-bottom: 10px;">🟦 XRP</h4>
+                    <div class="info-item">
+                        <span class="label">📌 Indirizzo</span>
+                        <span class="value address" id="donate-address" style="font-size: 11px; word-break: break-all;">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">🌐 Rete</span>
+                        <span class="value" id="donate-network">-</span>
+                    </div>
+                    <div style="margin-top: 15px; display: flex; gap: 8px; flex-wrap: wrap;" id="donate-preset-buttons">
+                    </div>
+                    <div style="margin-top: 10px; padding: 8px 12px; background: #0a0a1a; border-radius: 5px; border: 1px solid #2ed57333;">
+                        <span style="color: #888; font-size: 11px;">✅ Scegli un importo e clicca su "Invia"</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
         <div class="footer">
             <span class="xrp-icon">✦</span>
             <span style="color: #888;">XRP/XLM Wallet Manager</span>
@@ -512,6 +566,9 @@
     
     <script>
         let activeSection = null;
+        let donateAmount = 0;
+        let donateCrypto = 'XRP';
+        let donateAddress = '';
         
         function toggleSection(id) {
             const section = document.getElementById('section-' + id);
@@ -519,6 +576,10 @@
                 section.classList.remove('visible');
                 activeSection = null;
                 document.querySelectorAll('.nav button').forEach(btn => btn.classList.remove('active'));
+                // 🔑 SVUOTA I CAMPI QUANDO ESCE DA DONAZIONE
+                if (id === 'donate') {
+                    clearDonationFields();
+                }
                 return;
             }
             document.querySelectorAll('.section').forEach(el => el.classList.remove('visible'));
@@ -531,6 +592,18 @@
             if (id === 'ricevi') loadQRCode();
             if (id === 'rubrica') loadContacts();
             if (id === 'wallets') loadWallets();
+            if (id === 'donate') {
+                loadDonateInfo();
+            }
+        }
+        
+        function clearDonationFields() {
+            document.getElementById('send-dest').value = '';
+            document.getElementById('send-amount').value = '';
+            document.getElementById('send-memo').value = '';
+            donateAmount = 0;
+            donateCrypto = 'XRP';
+            donateAddress = '';
         }
         
         async function changeCrypto() {
@@ -550,6 +623,10 @@
             loadInfo();
             loadHistory();
             loadWallets();
+            // Se siamo in donazione, aggiorna
+            if (document.getElementById('section-donate').classList.contains('visible')) {
+                loadDonateInfo();
+            }
         }
         
         async function changeNetwork() {
@@ -565,6 +642,9 @@
             loadInfo();
             loadHistory();
             loadWallets();
+            if (document.getElementById('section-donate').classList.contains('visible')) {
+                loadDonateInfo();
+            }
         }
         
         function showMessage(msg, type) {
@@ -825,7 +905,7 @@
             }
         }
         
-        function copyAddress() {
+        function copyAddressRicevi() {
             const address = document.getElementById('ricevi-address').textContent;
             if (address && address !== '-') {
                 navigator.clipboard.writeText(address).then(() => {
@@ -1052,10 +1132,121 @@
             showMessage('📤 Indirizzo inserito nel campo destinazione', 'info');
         }
         
+        async function loadDonateInfo() {
+            try {
+                const resp = await fetch('/api/donate/info');
+                const data = await resp.json();
+                
+                const network = document.getElementById('network-select').value || 'mainnet';
+                const crypto = document.getElementById('crypto-select').value || 'XRP';
+                
+                updateDonateCard(crypto, network, data);
+                
+                // PRECOMPILA SOLO QUANDO ENTRI IN DONAZIONE
+                autoPrecompileDonation(crypto, network, data);
+                
+            } catch (e) {
+                console.error('Errore caricamento info donazioni:', e);
+            }
+        }
+        
+        function updateDonateCard(crypto, network, data) {
+            const card = document.getElementById('donate-card');
+            const title = document.getElementById('donate-title');
+            const addressEl = document.getElementById('donate-address');
+            const networkEl = document.getElementById('donate-network');
+            const buttonsContainer = document.getElementById('donate-preset-buttons');
+            
+            if (crypto === 'XRP') {
+                title.textContent = '🟦 XRP';
+                card.style.borderLeftColor = '#00aaff';
+                title.style.color = '#00aaff';
+            } else {
+                title.textContent = '🟩 XLM';
+                card.style.borderLeftColor = '#00ff88';
+                title.style.color = '#00ff88';
+            }
+            
+            const addr = crypto === 'XRP' ? data.xrp[network] : data.xlm[network];
+            addressEl.textContent = addr || (crypto === 'XRP' ? data.xrp.mainnet : data.xlm.mainnet);
+            donateAddress = addressEl.textContent;
+            
+            networkEl.textContent = network.toUpperCase();
+            
+            let presets = [];
+            if (crypto === 'XRP') {
+                presets = [0.1, 1, 5, 10];
+            } else {
+                presets = [0.5, 5, 10, 25];
+            }
+            
+            buttonsContainer.innerHTML = presets.map(amount => 
+                `<button class="donate-preset-btn ${crypto === 'XRP' ? 'donate-preset-btn-xrp' : 'donate-preset-btn-xlm'}" 
+                    onclick="donatePreset('${crypto}', ${amount})">${amount} ${crypto}</button>`
+            ).join('');
+            
+            buttonsContainer.innerHTML += `<button class="donate-preset-btn donate-preset-btn-custom" onclick="donateCustom('${crypto}')">✏️ Altro</button>`;
+            
+            document.getElementById('donate-current-crypto').textContent = crypto;
+            document.getElementById('donate-current-network').textContent = network.toUpperCase();
+        }
+        
+        function autoPrecompileDonation(crypto, network, data) {
+            const addr = crypto === 'XRP' ? data.xrp[network] : data.xlm[network];
+            const suggested = crypto === 'XRP' ? 1 : 5;
+            
+            document.getElementById('send-dest').value = addr || (crypto === 'XRP' ? data.xrp.mainnet : data.xlm.mainnet);
+            document.getElementById('send-amount').value = suggested;
+            document.getElementById('send-memo').value = 'Donazione XRPWallet ' + crypto;
+            
+            donateAddress = document.getElementById('send-dest').value;
+            donateAmount = suggested;
+            donateCrypto = crypto;
+        }
+        
+        function donatePreset(crypto, amount) {
+            donateCrypto = crypto;
+            donateAmount = amount;
+            
+            const address = document.getElementById('donate-address').textContent;
+            donateAddress = address;
+            
+            document.getElementById('send-dest').value = address;
+            document.getElementById('send-amount').value = amount;
+            document.getElementById('send-memo').value = 'Donazione XRPWallet ' + crypto;
+            
+            showMessage('📤 Importo donazione: ' + amount + ' ' + crypto, 'info');
+            document.getElementById('send-dest').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        
+        function donateCustom(crypto) {
+            const amount = prompt('Inserisci l\'importo in ' + crypto + ' da donare:');
+            if (amount === null) return;
+            
+            const numAmount = parseFloat(amount);
+            if (isNaN(numAmount) || numAmount <= 0) {
+                showMessage('❌ Importo non valido', 'error');
+                return;
+            }
+            
+            donatePreset(crypto, numAmount);
+        }
+        
         loadInfo();
         loadHistory();
         loadWallets();
         loadContacts();
+        
+        document.getElementById('crypto-select').addEventListener('change', function() {
+            if (document.getElementById('section-donate').classList.contains('visible')) {
+                loadDonateInfo();
+            }
+        });
+        document.getElementById('network-select').addEventListener('change', function() {
+            if (document.getElementById('section-donate').classList.contains('visible')) {
+                loadDonateInfo();
+            }
+        });
     </script>
 </body>
 </html>
