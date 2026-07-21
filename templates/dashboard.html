@@ -417,11 +417,11 @@
             <div class="rubrica-input-group">
                 <input type="text" id="contact-name" class="name-input" placeholder="Nome contatto">
                 <input type="text" id="contact-address" class="address-input" placeholder="Indirizzo">
-                <select id="contact-crypto">
+                <select id="contact-crypto" onchange="updateContactFilters()">
                     <option value="XRP">XRP</option>
                     <option value="XLM">XLM</option>
                 </select>
-                <select id="contact-network">
+                <select id="contact-network" onchange="updateContactFilters()">
                     <option value="mainnet">Mainnet</option>
                     <option value="testnet">Testnet</option>
                     <option value="devnet">Devnet</option>
@@ -569,34 +569,46 @@
         let donateAmount = 0;
         let donateCrypto = 'XRP';
         let donateAddress = '';
-        
+
         function toggleSection(id) {
             const section = document.getElementById('section-' + id);
+            
             if (activeSection === id) {
                 section.classList.remove('visible');
-                activeSection = null;
-                document.querySelectorAll('.nav button').forEach(btn => btn.classList.remove('active'));
-                // 🔑 SVUOTA I CAMPI QUANDO ESCE DA DONAZIONE
                 if (id === 'donate') {
                     clearDonationFields();
                 }
+                activeSection = null;
+                document.querySelectorAll('.nav button').forEach(btn => btn.classList.remove('active'));
                 return;
             }
+            
+            if (activeSection === 'donate') {
+                clearDonationFields();
+            }
+            
             document.querySelectorAll('.section').forEach(el => el.classList.remove('visible'));
             section.classList.add('visible');
             activeSection = id;
+            
             document.querySelectorAll('.nav button').forEach(btn => btn.classList.remove('active'));
             const activeBtn = document.querySelector(`.nav button[onclick="toggleSection('${id}')"]`);
             if (activeBtn) activeBtn.classList.add('active');
+            
             if (id === 'history') loadHistory();
             if (id === 'ricevi') loadQRCode();
-            if (id === 'rubrica') loadContacts();
+            if (id === 'rubrica') {
+                // 🔑 AGGIORNA I FILTRI DELLA RUBRICA CON I VALORI DEL MENU
+                document.getElementById('contact-crypto').value = document.getElementById('crypto-select').value;
+                document.getElementById('contact-network').value = document.getElementById('network-select').value;
+                loadContacts();
+            }
             if (id === 'wallets') loadWallets();
             if (id === 'donate') {
                 loadDonateInfo();
             }
         }
-        
+
         function clearDonationFields() {
             document.getElementById('send-dest').value = '';
             document.getElementById('send-amount').value = '';
@@ -605,7 +617,7 @@
             donateCrypto = 'XRP';
             donateAddress = '';
         }
-        
+
         async function changeCrypto() {
             const crypto = document.getElementById('crypto-select').value;
             document.getElementById('header-crypto').textContent = crypto;
@@ -623,12 +635,16 @@
             loadInfo();
             loadHistory();
             loadWallets();
-            // Se siamo in donazione, aggiorna
+            // 🔑 AGGIORNA I FILTRI DELLA RUBRICA
+            document.getElementById('contact-crypto').value = crypto;
+            if (document.getElementById('section-rubrica').classList.contains('visible')) {
+                loadContacts();
+            }
             if (document.getElementById('section-donate').classList.contains('visible')) {
                 loadDonateInfo();
             }
         }
-        
+
         async function changeNetwork() {
             const network = document.getElementById('network-select').value;
             const badge = document.getElementById('network-badge');
@@ -642,11 +658,16 @@
             loadInfo();
             loadHistory();
             loadWallets();
+            // 🔑 AGGIORNA I FILTRI DELLA RUBRICA
+            document.getElementById('contact-network').value = network;
+            if (document.getElementById('section-rubrica').classList.contains('visible')) {
+                loadContacts();
+            }
             if (document.getElementById('section-donate').classList.contains('visible')) {
                 loadDonateInfo();
             }
         }
-        
+
         function showMessage(msg, type) {
             const el = document.getElementById('message');
             el.textContent = msg;
@@ -654,15 +675,15 @@
             el.style.display = 'block';
             setTimeout(() => { el.style.display = 'none'; }, 8000);
         }
-        
+
         function showModal(id) {
             document.getElementById(id).style.display = 'flex';
         }
-        
+
         function closeModal(id) {
             document.getElementById(id).style.display = 'none';
         }
-        
+
         async function loadInfo() {
             try {
                 const resp = await fetch('/api/wallet/info');
@@ -691,7 +712,7 @@
                 showMessage('❌ Errore caricamento info', 'error');
             }
         }
-        
+
         async function loadWallets() {
             const list = document.getElementById('wallets-list');
             list.innerHTML = 'Caricamento...';
@@ -727,7 +748,7 @@
                 list.innerHTML = '❌ Errore caricamento wallet';
             }
         }
-        
+
         async function switchWallet(name) {
             try {
                 const resp = await fetch('/api/wallet/switch', {
@@ -743,6 +764,9 @@
                     loadInfo();
                     loadWallets();
                     loadHistory();
+                    // 🔑 AGGIORNA I FILTRI DELLA RUBRICA
+                    document.getElementById('contact-crypto').value = data.crypto || 'XRP';
+                    document.getElementById('contact-network').value = data.network || 'testnet';
                 } else {
                     showMessage('❌ ' + data.error, 'error');
                 }
@@ -750,14 +774,14 @@
                 showMessage('❌ Errore cambio wallet', 'error');
             }
         }
-        
+
         function showCreateWallet() {
             document.getElementById('new-wallet-name').value = '';
             document.getElementById('new-wallet-passphrase').value = '';
             document.getElementById('new-wallet-seed').style.display = 'none';
             showModal('createWalletModal');
         }
-        
+
         async function createWallet() {
             const name = document.getElementById('new-wallet-name').value.trim();
             const passphrase = document.getElementById('new-wallet-passphrase').value.trim();
@@ -791,14 +815,14 @@
                 showMessage('❌ Errore creazione wallet', 'error');
             }
         }
-        
+
         function showImportWallet() {
             document.getElementById('import-wallet-name').value = '';
             document.getElementById('import-seed').value = '';
             document.getElementById('import-passphrase').value = '';
             showModal('importWalletModal');
         }
-        
+
         async function importWallet() {
             const name = document.getElementById('import-wallet-name').value.trim();
             const seed = document.getElementById('import-seed').value.trim();
@@ -828,7 +852,7 @@
                 showMessage('❌ Errore importazione wallet', 'error');
             }
         }
-        
+
         async function deleteWallet() {
             const active = document.getElementById('wallet-name').textContent;
             if (!active || active === '-') {
@@ -854,7 +878,7 @@
                 showMessage('❌ Errore eliminazione wallet', 'error');
             }
         }
-        
+
         async function loadQRCode() {
             const loading = document.getElementById('qrcode-loading');
             const image = document.getElementById('qrcode-image');
@@ -895,7 +919,7 @@
                 console.error('Errore QR Code:', e);
             }
         }
-        
+
         function downloadQRCode() {
             const image = document.getElementById('qrcode-image');
             if (image.src && image.src !== '') {
@@ -904,7 +928,7 @@
                 showMessage('❌ QR Code non disponibile', 'error');
             }
         }
-        
+
         function copyAddressRicevi() {
             const address = document.getElementById('ricevi-address').textContent;
             if (address && address !== '-') {
@@ -921,7 +945,7 @@
                 });
             }
         }
-        
+
         async function loadHistory() {
             const tbody = document.getElementById('history-body');
             const summary = document.getElementById('history-summary');
@@ -965,7 +989,7 @@
                 tbody.innerHTML = '<tr><td colspan="7" style="padding: 20px; text-align: center; color: #ff4757;">❌ Errore caricamento storico: ' + e.message + '</td></tr>';
             }
         }
-        
+
         async function sendPayment() {
             const dest = document.getElementById('send-dest').value.trim();
             const amount = document.getElementById('send-amount').value.trim();
@@ -1032,7 +1056,7 @@
                 }, 2000);
             }
         }
-        
+
         async function loadContacts() {
             const container = document.getElementById('contacts-list');
             container.innerHTML = '<div class="empty">⏳ Caricamento...</div>';
@@ -1043,24 +1067,31 @@
                     container.innerHTML = '<div class="empty" style="color: #ff4757;">❌ ' + data.error + '</div>';
                     return;
                 }
-                const contacts = data.contacts || [];
-                const currentCrypto = data.crypto || 'XRP';
-                const currentNetwork = data.network || 'testnet';
-                if (contacts.length === 0) {
-                    container.innerHTML = '<div class="empty">📭 Nessun contatto per ' + currentCrypto + ' su ' + currentNetwork.toUpperCase() + '</div>';
+                
+                // 🔑 USA I FILTRI DEI SELECT DELLA RUBRICA (NON QUELLI DEL MENU PRINCIPALE)
+                const filterCrypto = document.getElementById('contact-crypto').value || 'XRP';
+                const filterNetwork = document.getElementById('contact-network').value || 'mainnet';
+                
+                const allContacts = data.contacts || [];
+                const filtered = allContacts.filter(c => 
+                    (c.crypto || 'XRP') === filterCrypto && 
+                    (c.network || 'testnet') === filterNetwork
+                );
+                
+                if (filtered.length === 0) {
+                    container.innerHTML = '<div class="empty">📭 Nessun contatto per ' + filterCrypto + ' su ' + filterNetwork.toUpperCase() + '</div>';
                     return;
                 }
-                container.innerHTML = contacts.map(c => {
-                    const crypto = c.crypto || 'XRP';
-                    const network = c.network || 'testnet';
-                    const badgeClass = crypto === 'XRP' ? 'badge-xrp' : 'badge-xlm';
+                
+                container.innerHTML = filtered.map(c => {
+                    const badgeClass = filterCrypto === 'XRP' ? 'badge-xrp' : 'badge-xlm';
                     return '<div class="contact-item">' +
                         '<div class="contact-info">' +
                             '<div class="contact-name">' + (c.nome || '?') + '</div>' +
                             '<div class="contact-address">' + (c.indirizzo || 'N/A') + '</div>' +
                             '<div class="contact-meta">' +
-                                '<span class="badge ' + badgeClass + '" style="font-size:10px;">' + crypto + '</span>' +
-                                '<span class="badge ' + (network === 'mainnet' ? 'badge-mainnet' : 'badge-testnet') + '" style="font-size:10px;">' + network.toUpperCase() + '</span>' +
+                                '<span class="badge ' + badgeClass + '" style="font-size:10px;">' + filterCrypto + '</span>' +
+                                '<span class="badge ' + (filterNetwork === 'mainnet' ? 'badge-mainnet' : 'badge-testnet') + '" style="font-size:10px;">' + filterNetwork.toUpperCase() + '</span>' +
                                 (c.note ? '📝 ' + c.note : '') +
                             '</div>' +
                         '</div>' +
@@ -1070,27 +1101,55 @@
                         '</div>' +
                     '</div>';
                 }).join('');
+                
             } catch (e) {
                 console.error('Errore loadContacts:', e);
                 container.innerHTML = '<div class="empty" style="color: #ff4757;">❌ Errore caricamento contatti</div>';
             }
         }
-        
+
+        // 🔑 FUNZIONE PER AGGIORNARE I FILTRI DELLA RUBRICA
+        function updateContactFilters() {
+            // Quando l'utente cambia i filtri nella rubrica, ricarica i contatti
+            loadContacts();
+        }
+
         async function addContact() {
             const name = document.getElementById('contact-name').value.trim();
             const address = document.getElementById('contact-address').value.trim();
+            // 🔑 USA I FILTRI SELEZIONATI NELLA RUBRICA
             const crypto = document.getElementById('contact-crypto').value;
             const network = document.getElementById('contact-network').value;
             const note = document.getElementById('contact-note').value.trim();
+            
             if (!name || !address) {
                 showMessage('❌ Inserisci nome e indirizzo', 'error');
                 return;
             }
+            
+            // Validazione base dell'indirizzo
+            if (crypto === 'XRP' && !address.startsWith('r')) {
+                showMessage('❌ Indirizzo XRP deve iniziare con r', 'error');
+                return;
+            }
+            if (crypto === 'XLM' && !address.startsWith('G')) {
+                showMessage('❌ Indirizzo XLM deve iniziare con G', 'error');
+                return;
+            }
+            
             try {
                 const resp = await fetch('/api/contacts/add', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, address, note, crypto, network, keyword: '', index: 0 })
+                    body: JSON.stringify({ 
+                        name, 
+                        address, 
+                        note, 
+                        crypto,      // 🔑 USA LA CRYPTO SELEZIONATA NELLA RUBRICA
+                        network,     // 🔑 USA LA RETE SELEZIONATA NELLA RUBRICA
+                        keyword: '', 
+                        index: 0 
+                    })
                 });
                 const data = await resp.json();
                 if (data.success) {
@@ -1106,14 +1165,17 @@
                 showMessage('❌ Errore aggiunta contatto', 'error');
             }
         }
-        
+
         async function deleteContact(name) {
             if (!confirm('⚠️ Eliminare il contatto "' + name + '"?')) return;
             try {
                 const resp = await fetch('/api/contacts/delete', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: name, crypto: document.getElementById('crypto-select').value })
+                    body: JSON.stringify({ 
+                        name: name, 
+                        crypto: document.getElementById('contact-crypto').value 
+                    })
                 });
                 const data = await resp.json();
                 if (data.success) {
@@ -1126,12 +1188,12 @@
                 showMessage('❌ Errore eliminazione contatto', 'error');
             }
         }
-        
+
         function useContact(address) {
             document.getElementById('send-dest').value = address;
             showMessage('📤 Indirizzo inserito nel campo destinazione', 'info');
         }
-        
+
         async function loadDonateInfo() {
             try {
                 const resp = await fetch('/api/donate/info');
@@ -1141,15 +1203,13 @@
                 const crypto = document.getElementById('crypto-select').value || 'XRP';
                 
                 updateDonateCard(crypto, network, data);
-                
-                // PRECOMPILA SOLO QUANDO ENTRI IN DONAZIONE
                 autoPrecompileDonation(crypto, network, data);
                 
             } catch (e) {
                 console.error('Errore caricamento info donazioni:', e);
             }
         }
-        
+
         function updateDonateCard(crypto, network, data) {
             const card = document.getElementById('donate-card');
             const title = document.getElementById('donate-title');
@@ -1190,7 +1250,7 @@
             document.getElementById('donate-current-crypto').textContent = crypto;
             document.getElementById('donate-current-network').textContent = network.toUpperCase();
         }
-        
+
         function autoPrecompileDonation(crypto, network, data) {
             const addr = crypto === 'XRP' ? data.xrp[network] : data.xlm[network];
             const suggested = crypto === 'XRP' ? 1 : 5;
@@ -1203,7 +1263,7 @@
             donateAmount = suggested;
             donateCrypto = crypto;
         }
-        
+
         function donatePreset(crypto, amount) {
             donateCrypto = crypto;
             donateAmount = amount;
@@ -1218,7 +1278,7 @@
             showMessage('📤 Importo donazione: ' + amount + ' ' + crypto, 'info');
             document.getElementById('send-dest').scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
-        
+
         function donateCustom(crypto) {
             const amount = prompt('Inserisci l\'importo in ' + crypto + ' da donare:');
             if (amount === null) return;
@@ -1231,17 +1291,22 @@
             
             donatePreset(crypto, numAmount);
         }
-        
+
         loadInfo();
         loadHistory();
         loadWallets();
         loadContacts();
-        
+
+        // 🔑 SINCRONIZZA I FILTRI DELLA RUBRICA CON I MENU PRINCIPALI ALL'AVVIO
+        document.getElementById('contact-crypto').value = document.getElementById('crypto-select').value;
+        document.getElementById('contact-network').value = document.getElementById('network-select').value;
+
         document.getElementById('crypto-select').addEventListener('change', function() {
             if (document.getElementById('section-donate').classList.contains('visible')) {
                 loadDonateInfo();
             }
         });
+
         document.getElementById('network-select').addEventListener('change', function() {
             if (document.getElementById('section-donate').classList.contains('visible')) {
                 loadDonateInfo();
