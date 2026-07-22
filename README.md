@@ -175,8 +175,10 @@ Open any wallet or transaction directly from the application.
 
 ## TUI
 
-![TUI](screenshots/tui.png)
-
+![TUI]
+<p align="center">
+  <img src="jpg/arg0net-logo.jpg" width="900">
+</p>
 ---
 
 ## Web Interface
