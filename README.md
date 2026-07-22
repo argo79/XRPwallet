@@ -197,6 +197,7 @@ Open any wallet or transaction directly from the application.
 
 ---
 
+
 # 📦 Installation
 
 ```bash
@@ -606,6 +607,8 @@ Example output:
 └────┴─────────────────────┴────────────┴──────────────────┴────────────┴────────────────────────────────────────────┘
 ```
 
+---
+
 <p align="center">
   <img src="jpg/web2.jpg" width="900">
 </p>
@@ -703,13 +706,15 @@ Username: admin
 Password: admin123
 ```
 
+<p align="center">
+  <img src="jpg/web1.jpg" width="900">
+</p>
+
+
 > ⚠️ **Security Notice**
 >
 > Change the default administrator password after your first login.
 
-<p align="center">
-  <img src="jpg/web1.jpg" width="900">
-</p>
 
 ---
 
