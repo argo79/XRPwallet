@@ -7,7 +7,7 @@ echo "📦 BUILD DESKTOP CON ICONA"
 echo "=========================="
 
 # Versione
-VERSION="1.1.0"
+VERSION="1.1.1"
 APP_NAME="xrpwallet-desktop-${VERSION}"
 
 # 🔑 VERIFICA ICONE

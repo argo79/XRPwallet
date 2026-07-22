@@ -15,7 +15,7 @@ echo ""
 # 🔧 CONFIGURAZIONE UNICA
 # ============================================================
 
-VERSION="1.1.0"                    # 🔑 VERSIONE UNICA
+VERSION="1.1.1"                    # 🔑 VERSIONE UNICA
 APP_NAME="xrpwallet-${VERSION}"    # Nome eseguibile con versione
 ARCHIVE_NAME="xrpwallet-linux-${VERSION}.tar.gz"
 
@@ -127,7 +127,7 @@ Usa: xrpwallet [--cli|--tui|--web] [opzioni]
 import sys
 import os
 
-VERSION = "1.1.0"
+VERSION = "1.1.1"
 
 def main():
     if len(sys.argv) == 1:

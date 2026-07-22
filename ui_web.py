@@ -2,7 +2,7 @@
 """
 ui_web.py - Interfaccia web per XRP/XLM Wallet Manager
 Usa Flask con autenticazione e sessioni sicure
-Versione 1.1.0 - CON MULTILINGUA
+Versione 1.1.1 - CON MULTILINGUA
 """
 
 import json

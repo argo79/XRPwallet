@@ -375,7 +375,7 @@ class DesktopWindow(QMainWindow):
             "Informazioni",
             f"""
             <h2>💰 XRP/XLM Wallet Manager</h2>
-            <p><b>Versione:</b> v1.1.0</p>
+            <p><b>Versione:</b> v1.1.1</p>
             <p><b>Autore:</b> Arg0net</p>
             <br>
             <p>Gestisci i tuoi wallet XRP e XLM con facilità</p>
