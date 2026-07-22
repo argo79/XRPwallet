@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-ui_desktop.py - App desktop standalone con PySide6 (QT)
+ui_desktop.py - App desktop standalone con PySide6
 """
 
 import sys
@@ -8,25 +8,23 @@ import os
 import threading
 import time
 from pathlib import Path
+from datetime import datetime
 
-# 🔑 IMPOSTA VARIABILI D'AMBIENTE PRIMA DELL'IMPORT
+# 🔑 IMPOSTA VARIABILI D'AMBIENTE
 os.environ["QT_QPA_PLATFORM"] = "xcb"
 os.environ["QT_PLUGIN_PATH"] = os.path.join(os.path.dirname(sys.executable), "plugins")
 
-try:
-    from PySide6.QtCore import QUrl, QTimer, Qt, QSettings
-    from PySide6.QtWidgets import QApplication, QMainWindow, QStatusBar, QMessageBox
-    from PySide6.QtGui import QIcon, QAction
-    from PySide6.QtWebEngineWidgets import QWebEngineView
-    from PySide6.QtWebEngineCore import QWebEngineSettings, QWebEngineProfile
-except ImportError as e:
-    print(f"⚠️ Errore import PySide6: {e}")
-    os.environ["QT_QPA_PLATFORM"] = "offscreen"
-    from PySide6.QtCore import QUrl, QTimer, Qt, QSettings
-    from PySide6.QtWidgets import QApplication, QMainWindow, QStatusBar, QMessageBox
-    from PySide6.QtGui import QIcon, QAction
-    from PySide6.QtWebEngineWidgets import QWebEngineView
-    from PySide6.QtWebEngineCore import QWebEngineSettings, QWebEngineProfile
+# 🔑 IMPORT PYSIDE6 - CORRETTI
+from PySide6.QtCore import QUrl, QTimer, Qt, QSettings, QEvent
+from PySide6.QtWidgets import (
+    QApplication, QMainWindow, QStatusBar, QMessageBox, QFileDialog
+)
+from PySide6.QtGui import QIcon, QAction, QDesktopServices
+
+# 🔑 QWebEngineView da QtWebEngineWidgets
+# 🔑 QWebEnginePage, QWebEngineSettings, QWebEngineProfile da QtWebEngineCore
+from PySide6.QtWebEngineWidgets import QWebEngineView
+from PySide6.QtWebEngineCore import QWebEnginePage, QWebEngineSettings, QWebEngineProfile
 
 from ui_web import app as flask_app
 
@@ -34,7 +32,7 @@ from ui_web import app as flask_app
 # 🔧 CONFIGURAZIONE
 # ============================================================
 
-WINDOW_TITLE = "💰 XRP/XLM Wallet Manager"
+WINDOW_TITLE = "XRP/XLM Wallet Manager - by Arg0net - 2026"
 WINDOW_WIDTH = 1200
 WINDOW_HEIGHT = 800
 WINDOW_MIN_WIDTH = 900
@@ -48,6 +46,40 @@ ORGANIZATION_NAME = "Arg0net"
 APPLICATION_NAME = "XRPWallet"
 
 # ============================================================
+# 🔑 PAGINA WEB PERSONALIZZATA
+# ============================================================
+
+class CustomWebEnginePage(QWebEnginePage):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.main_window = parent
+        
+        if parent and hasattr(parent, 'main_window'):
+            self.main_window = parent.main_window
+        elif parent:
+            self.main_window = parent
+    
+    def acceptNavigationRequest(self, url, nav_type, is_main_frame):
+        url_str = url.toString()
+        
+        # 🔑 SE È IL NOSTRO SERVER, CARICA NELLA FINESTRA
+        if url_str.startswith('http://127.0.0.1:5000') or url_str.startswith('http://localhost:5000'):
+            print(f"✅ Navigazione interna: {url_str}")
+            return True
+        
+        # 🔑 QUALSIASI ALTRO LINK - BLOCCA
+        print(f"🚫 Navigazione bloccata: {url_str}")
+        QDesktopServices.openUrl(url)
+        
+        if self.main_window and hasattr(self.main_window, 'status'):
+            self.main_window.status.showMessage(f"🌐 Aperto nel browser", 2000)
+        
+        return False
+    
+    def createWindow(self, window_type):
+        return self
+
+# ============================================================
 # 🖥️ CLASSE PRINCIPALE
 # ============================================================
 
@@ -55,17 +87,34 @@ class DesktopWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         
+        # 🔑 DETERMINA LA ROOT DELL'APP
+        if getattr(sys, 'frozen', False):
+            self.app_root = os.path.dirname(sys.executable)
+        else:
+            self.app_root = os.path.dirname(os.path.abspath(__file__))
+        
+        self.download_dir = self.app_root
+        self.current_url = SERVER_URL
+        
+        print(f"📂 App root: {self.app_root}")
+        print(f"📂 Download dir: {self.download_dir}")
+        
         # Configura finestra
         self.setWindowTitle(WINDOW_TITLE)
         self.setGeometry(100, 100, WINDOW_WIDTH, WINDOW_HEIGHT)
         self.setMinimumSize(WINDOW_MIN_WIDTH, WINDOW_MIN_HEIGHT)
         
-        # Imposta icona se disponibile
         if os.path.exists("favicon.ico"):
             self.setWindowIcon(QIcon("favicon.ico"))
         
-        # Crea il browser
+        # 🔑 CREA IL BROWSER
         self.browser = QWebEngineView()
+        self.page = CustomWebEnginePage(self.browser)
+        self.page.main_window = self
+        self.browser.setPage(self.page)
+        
+        # 🔑 CONFIGURA IL PROFILO PER I DOWNLOAD
+        self.setup_download_handler()
         
         # Configura il browser
         settings = self.browser.settings()
@@ -78,6 +127,11 @@ class DesktopWindow(QMainWindow):
         settings.setAttribute(QWebEngineSettings.AutoLoadImages, True)
         settings.setAttribute(QWebEngineSettings.ErrorPageEnabled, True)
         
+        try:
+            settings.setAttribute(QWebEngineSettings.JavascriptCanAccessClipboard, True)
+        except:
+            pass
+        
         # Configura profilo
         try:
             profile = QWebEngineProfile.defaultProfile()
@@ -86,15 +140,10 @@ class DesktopWindow(QMainWindow):
         except:
             pass
         
-        # Abilita strumenti sviluppatore in debug
-        if os.getenv("DEBUG", "0") == "1":
-            try:
-                self.browser.page().setDevToolsPage(self.browser.page())
-            except:
-                pass
-        
-        # Imposta il browser come widget centrale
         self.setCentralWidget(self.browser)
+        
+        # 🔑 FILTRO EVENTI PER RICARICARE LA PAGINA
+        self.installEventFilter(self)
         
         # Crea barra di stato
         self.status = QStatusBar()
@@ -114,6 +163,92 @@ class DesktopWindow(QMainWindow):
         
         # Avvia il server Flask
         self.start_flask_server()
+    
+    def eventFilter(self, obj, event):
+        """🔑 CATTURA L'ATTIVAZIONE DELLA FINESTRA"""
+        if event.type() == QEvent.WindowActivate:
+            print("🔄 Finestra attivata - Ricarico la pagina...")
+            self.browser.setUrl(QUrl(SERVER_URL))
+            self.status.showMessage("✅ Pagina ricaricata", 1000)
+            return True
+        return super().eventFilter(obj, event)
+    
+    def setup_download_handler(self):
+        try:
+            profile = QWebEngineProfile.defaultProfile()
+            profile.setDownloadPath(self.download_dir)
+            profile.downloadRequested.connect(self.handle_download)
+        except Exception as e:
+            print(f"⚠️ Errore configurazione download: {e}")
+    
+    def get_human_filename(self):
+        address = ""
+        try:
+            import requests
+            response = requests.get("http://127.0.0.1:5000/api/wallet/address", timeout=2)
+            if response.status_code == 200:
+                data = response.json()
+                address = data.get('address', '')
+        except:
+            pass
+        
+        now = datetime.now()
+        date_str = now.strftime("%Y%m%d_%H%M%S")
+        
+        if address and len(address) >= 8:
+            short_addr = address[-8:]
+            filename = f"xrpwallet_qrcode_{short_addr}_{date_str}.png"
+        else:
+            filename = f"xrpwallet_qrcode_{date_str}.png"
+        
+        return filename
+    
+    def handle_download(self, download):
+        try:
+            human_filename = self.get_human_filename()
+            default_path = os.path.join(self.download_dir, human_filename)
+            
+            file_path, _ = QFileDialog.getSaveFileName(
+                self,
+                "Salva QR Code",
+                default_path,
+                "PNG Image (*.png);;All Files (*)"
+            )
+            
+            if file_path:
+                dir_path = os.path.dirname(file_path)
+                if not os.path.exists(dir_path):
+                    os.makedirs(dir_path, exist_ok=True)
+                
+                download.setDownloadDirectory(os.path.dirname(file_path))
+                download.setDownloadFileName(os.path.basename(file_path))
+                download.finished.connect(lambda: self.on_download_finished(file_path))
+                download.accept()
+                
+                self.status.showMessage(f"📥 Download avviato: {os.path.basename(file_path)}", 3000)
+            else:
+                download.cancel()
+                self.status.showMessage("❌ Download annullato", 2000)
+                
+        except Exception as e:
+            print(f"❌ Errore download: {e}")
+            try:
+                fallback_filename = self.get_human_filename()
+                fallback_path = os.path.join(self.download_dir, fallback_filename)
+                download.setDownloadDirectory(os.path.dirname(fallback_path))
+                download.setDownloadFileName(os.path.basename(fallback_path))
+                download.accept()
+                self.status.showMessage(f"📥 Download salvato in: {fallback_path}", 5000)
+            except:
+                pass
+    
+    def on_download_finished(self, file_path):
+        self.status.showMessage(f"✅ Download completato: {os.path.basename(file_path)}", 5000)
+        QMessageBox.information(
+            self,
+            "Download completato",
+            f"✅ QR Code salvato in:\n{file_path}"
+        )
     
     def create_menu(self):
         menubar = self.menuBar()
@@ -164,7 +299,7 @@ class DesktopWindow(QMainWindow):
         help_menu.addAction(about_action)
         help_menu.addSeparator()
         website_action = QAction("🌐 Sito web", self)
-        website_action.triggered.connect(lambda: self.browser.setUrl(QUrl("https://github.com/argo79/XRPwallet")))
+        website_action.triggered.connect(lambda: QDesktopServices.openUrl(QUrl("https://github.com/argo79/XRPwallet")))
         help_menu.addAction(website_action)
     
     def start_flask_server(self):
@@ -182,7 +317,6 @@ class DesktopWindow(QMainWindow):
         
         self.flask_thread = threading.Thread(target=run_flask, daemon=True)
         self.flask_thread.start()
-        
         self.status.showMessage("⏳ Avvio del server...")
         self._wait_for_server(MAX_RETRIES, RETRY_DELAY_MS / 1000.0)
     
@@ -240,23 +374,22 @@ class DesktopWindow(QMainWindow):
             "Informazioni",
             f"""
             <h2>💰 XRP/XLM Wallet Manager</h2>
-            <p><b>Versione:</b> v2.0.1</p>
+            <p><b>Versione:</b> v1.1.0</p>
             <p><b>Autore:</b> Arg0net</p>
             <br>
             <p>Gestisci i tuoi wallet XRP e XLM con facilità</p>
-            <p>🔗 <a href="https://github.com/argo79/XRPwallet">GitHub Repository</a></p>
+            <br>
+            <p><b>📂 Cartella download:</b> {self.download_dir}</p>
             """
         )
     
     def save_window_state(self):
-        """Salva lo stato della finestra"""
         settings = QSettings(ORGANIZATION_NAME, APPLICATION_NAME)
         settings.setValue("geometry", self.saveGeometry())
         settings.setValue("windowState", self.saveState())
         settings.setValue("zoomFactor", str(self.browser.zoomFactor()))
     
     def restore_window_state(self):
-        """Ripristina lo stato della finestra"""
         settings = QSettings(ORGANIZATION_NAME, APPLICATION_NAME)
         if settings.contains("geometry"):
             self.restoreGeometry(settings.value("geometry"))
@@ -264,17 +397,12 @@ class DesktopWindow(QMainWindow):
             self.restoreState(settings.value("windowState"))
         if settings.contains("zoomFactor"):
             try:
-                # 🔑 CONVERTI STRINGA A FLOAT
                 zoom_str = settings.value("zoomFactor")
-                if isinstance(zoom_str, str):
-                    zoom_factor = float(zoom_str)
-                else:
-                    zoom_factor = float(zoom_str)
-                # 🔑 LIMITA LO ZOOM A VALORI SENSATI
+                zoom_factor = float(zoom_str) if isinstance(zoom_str, str) else float(zoom_str)
                 if 0.5 <= zoom_factor <= 2.0:
                     self.browser.setZoomFactor(zoom_factor)
-            except (ValueError, TypeError):
-                pass  # Ignora se non può convertire
+            except:
+                pass
     
     def closeEvent(self, event):
         reply = QMessageBox.question(

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 commands/xlm_commands.py - Comandi per XLM (Stellar)
-Versione 2.5 - INDIRIZZI COMPLETI + TIPI CORRETTI
+Versione 1.1.0 - INDIRIZZI COMPLETI + TIPI CORRETTI
 """
 
 import logging

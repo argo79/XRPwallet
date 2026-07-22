@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 wallet_manager.py - Gestione wallet XRP e XLM (Stellar)
-Versione 2.0 - Ottimizzata e completa
+Versione 1.1.0 - Ottimizzata e completa
 """
 
 import json
@@ -1171,7 +1171,7 @@ class HybridXRPManager:
             "seed_type": self.seed_type,
             "address": self._correct_address,
             "created_at": datetime.now().isoformat(),
-            "version": "2.0"
+            "version": "1.1.0"
         }
         
         if include_private:

@@ -1,11 +1,18 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="{{ lang }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>XRP/XLM Wallet Manager</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏦</text></svg>">
-    <style>
+    <title>{{ t('app_name') }}</title>
+    <!-- 🔑 USA IL PERCORSO DIRETTO /icons/ -->
+    <link rel="icon" type="image/png" href="/icons/icon-32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32.png">
+    <link rel="icon" type="image/png" sizes="48x48" href="/icons/icon-48.png">
+    <link rel="icon" type="image/png" sizes="64x64" href="/icons/icon-64.png">
+    <link rel="icon" type="image/png" sizes="128x128" href="/icons/icon-128.png">
+    <link rel="icon" type="image/png" sizes="256x256" href="/icons/icon-256.png">
+        <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: monospace; background: #1a1a2e; color: #eee; padding: 20px; }
         .container { max-width: 1200px; margin: 0 auto; }
@@ -28,6 +35,22 @@
         .nav .btn-donate { background: #ff6b35; color: #fff; }
         .nav .btn-donate:hover { background: #e55a2b; }
         #network-info { color: #888; margin-top: 5px; text-align: center; }
+        
+        .language-selector { display: flex; gap: 5px; align-items: center; justify-content: center; margin: 5px 0; }
+        .language-selector .lang-btn {
+            padding: 2px 8px;
+            border: 1px solid #333;
+            border-radius: 3px;
+            background: transparent;
+            color: #888;
+            cursor: pointer;
+            font-size: 11px;
+            text-decoration: none;
+            font-family: monospace;
+            transition: all 0.3s;
+        }
+        .language-selector .lang-btn:hover { background: #0f3460; color: #fff; }
+        .language-selector .lang-btn.active { background: #00d4ff; color: #000; border-color: #00d4ff; }
         
         .crypto-selector { display: flex; gap: 10px; margin: 10px 0; flex-wrap: wrap; align-items: center; justify-content: center; }
         .crypto-selector select { 
@@ -112,6 +135,8 @@
         .btn-success:hover { background: #7bed9f; }
         .btn-danger { background: #ff4757; color: #fff; }
         .btn-danger:hover { background: #ff6b81; }
+        .btn-secondary { background: #6c757d; color: #fff; }
+        .btn-secondary:hover { background: #5a6268; }
         .btn-sm { padding: 5px 10px; font-size: 12px; }
         .btn:disabled { opacity: 0.5; cursor: not-allowed; }
         
@@ -222,6 +247,7 @@
             overflow-y: auto; 
         }
         .wallet-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+        #password-strength { color: #888; font-size: 12px; margin: 5px 0; }
         
         #send-progress { margin-top: 10px; }
         .progress-bar-container { width:100%; background:#0a0a1a; border-radius:5px; overflow:hidden; }
@@ -275,20 +301,59 @@
         .donate-preset-btn-xlm:hover { background: #00cc66; }
         .donate-preset-btn-custom { background: #ffaa00; color: #000; }
         .donate-preset-btn-custom:hover { background: #cc8800; }
+        a { 
+            color: #00d4ff; 
+            text-decoration: none; 
+            transition: color 0.3s;
+            cursor: pointer;
+        }
+        a:hover { 
+            color: #00ff88; 
+            text-decoration: underline; 
+        }
+        .btn-donate-link {
+            background: #ff6b35;
+            color: #fff;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: monospace;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn-donate-link:hover {
+            background: #e55a2b;
+            transform: translateY(-2px);
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🏦 <span id="header-crypto">XRP</span> Wallet Manager</h1>
+            <h1>
+                <img src="{{ url_for('static', filename='../icons/icon-32.png') }}" alt="XRPWallet" style="width:32px; height:32px; vertical-align:middle;">
+                {{ t('app_name') }}
+            </h1>
+            
+            <div class="language-selector">
+                {% for lang_code in languages %}
+                    <a href="/set_language/{{ lang_code }}" 
+                       class="lang-btn {% if lang == lang_code %}active{% endif %}"
+                       onclick="setLanguage('{{ lang_code }}'); return false;">
+                        {{ lang_code.upper() }}
+                    </a>
+                {% endfor %}
+            </div>
             
             <div class="crypto-selector">
-                <span style="color:#888;">🪙 Crypto:</span>
+                <span style="color:#888;">{{ t('wallet.crypto') }}:</span>
                 <select id="crypto-select" onchange="changeCrypto()">
                     <option value="XRP">XRP</option>
                     <option value="XLM">XLM</option>
                 </select>
-                <span style="color:#888;">🌐 Rete:</span>
+                <span style="color:#888;">{{ t('wallet.network') }}:</span>
                 <select id="network-select" onchange="changeNetwork()">
                     <option value="mainnet">Mainnet</option>
                     <option value="testnet">Testnet</option>
@@ -299,13 +364,13 @@
             </div>
             
             <div class="nav">
-                <button class="active" onclick="toggleSection('history')">📜 Storico</button>
-                <button onclick="toggleSection('ricevi')">📥 Ricevi</button>
-                <button onclick="toggleSection('rubrica')">📒 Rubrica</button>
-                <button onclick="toggleSection('wallets')">📂 Wallet</button>
-                <button onclick="toggleSection('gestione')">🔧 Gestione</button>
-                <button onclick="toggleSection('donate')" class="btn-donate">☕ Donazione</button>
-                <a href="{{ url_for('logout') }}" style="padding: 10px 15px; background: #ff4757; color: #fff; border: none; border-radius: 5px; cursor: pointer; text-decoration: none; font-family: monospace;">🚪 Logout</a>
+                <button class="active" onclick="toggleSection('history')">{{ t('nav.history') }}</button>
+                <button onclick="toggleSection('ricevi')">{{ t('nav.receive') }}</button>
+                <button onclick="toggleSection('rubrica')">{{ t('nav.contacts') }}</button>
+                <button onclick="toggleSection('wallets')">{{ t('nav.wallets') }}</button>
+                <button onclick="toggleSection('gestione')">{{ t('nav.management') }}</button>
+                <button onclick="toggleSection('donate')" class="btn-donate">{{ t('nav.donate') }}</button>
+                <a href="{{ url_for('logout') }}" style="padding: 10px 15px; background: #ff4757; color: #fff; border: none; border-radius: 5px; cursor: pointer; text-decoration: none; font-family: monospace; display: inline-block;">{{ t('nav.logout') }}</a>
             </div>
             <div id="network-info" style="color: #888; margin-top: 5px;"></div>
         </div>
@@ -315,80 +380,80 @@
         <div id="dashboard">
             <div class="grid">
                 <div class="card">
-                    <h3>📊 Wallet Info</h3>
+                    <h3>{{ t('wallet.info') }}</h3>
                     <div id="wallet-info">
-                        <div class="info-item"><span class="label">Nome</span><span class="value" id="wallet-name">-</span></div>
-                        <div class="info-item"><span class="label">Indirizzo</span><span class="value address" id="wallet-address">-</span></div>
-                        <div class="info-item"><span class="label">Saldo</span><span class="value" id="wallet-balance">-</span></div>
-                        <div class="info-item"><span class="label">Rete</span><span class="value" id="wallet-network">-</span></div>
+                        <div class="info-item"><span class="label">{{ t('wallet.name') }}</span><span class="value" id="wallet-name">-</span></div>
+                        <div class="info-item"><span class="label">{{ t('wallet.address') }}</span><span class="value address" id="wallet-address">-</span></div>
+                        <div class="info-item"><span class="label">{{ t('wallet.balance') }}</span><span class="value" id="wallet-balance">-</span></div>
+                        <div class="info-item"><span class="label">{{ t('wallet.network') }}</span><span class="value" id="wallet-network">-</span></div>
                     </div>
                 </div>
                 
                 <div class="card">
-                    <h3 id="send-title">📤 Invia <span id="send-crypto">XRP</span></h3>
+                    <h3 id="send-title">{{ t('send.title') }} <span id="send-crypto">XRP</span></h3>
                     <div class="input-group">
-                        <input type="text" id="send-dest" placeholder="Indirizzo o nome contatto">
+                        <input type="text" id="send-dest" placeholder="{{ t('send.destination') }}">
                     </div>
                     <div class="input-group">
-                        <input type="number" id="send-amount" placeholder="Importo" step="0.000001">
-                        <input type="text" id="send-memo" placeholder="Memo (opzionale)">
+                        <input type="number" id="send-amount" placeholder="{{ t('send.amount') }}" step="0.000001">
+                        <input type="text" id="send-memo" placeholder="{{ t('send.memo') }}">
                     </div>
-                    <button class="btn btn-success" id="send-btn" onclick="sendPayment()">📤 Invia</button>
+                    <button class="btn btn-success" id="send-btn" onclick="sendPayment()">{{ t('send.send_btn') }}</button>
                     <div id="send-progress" style="display:none;">
                         <div class="progress-bar-container">
                             <div class="progress-bar-fill" id="send-progress-bar"></div>
                         </div>
-                        <div id="send-status">⏳ Preparazione transazione...</div>
+                        <div id="send-status">{{ t('send.sending') }}</div>
                     </div>
                 </div>
             </div>
         </div>
         
         <div id="section-ricevi" class="section">
-            <h3>📥 Ricevi <span id="ricevi-crypto">XRP</span></h3>
+            <h3 id="ricevi-title">{{ t('receive.title')|replace('{crypto}', '<span id="ricevi-crypto">XRP</span>')|safe }}</h3>
             <div class="ricevi-grid">
                 <div class="ricevi-qr">
                     <div id="qrcode-container">
-                        <div id="qrcode-loading" style="color: #888;">⏳ Generazione QR Code...</div>
+                        <div id="qrcode-loading" style="color: #888;">{{ t('receive.generate_qr') }}</div>
                         <img id="qrcode-image" src="" alt="QR Code" style="display: none; max-width: 250px; border-radius: 8px;">
                     </div>
                     <div class="btn-group-qr">
-                        <button class="btn btn-sm" onclick="downloadQRCode()">💾 Scarica PNG</button>
-                        <button class="btn btn-sm" onclick="copyAddressRicevi()">📋 Copia indirizzo</button>
+                        <button class="btn btn-sm" onclick="downloadQRCode()">{{ t('receive.download_png') }}</button>
+                        <button class="btn btn-sm" onclick="copyAddressRicevi()">{{ t('receive.copy_address') }}</button>
                     </div>
                 </div>
                 
                 <div class="ricevi-info">
-                    <div class="info-item"><span class="label">📂 Wallet</span><span class="value" id="ricevi-wallet">-</span></div>
-                    <div class="info-item"><span class="label">🪙 Crypto</span><span class="value" id="ricevi-crypto-label">-</span></div>
-                    <div class="info-item"><span class="label">🌐 Rete</span><span class="value" id="ricevi-network">-</span></div>
-                    <div class="info-item"><span class="label">💰 Saldo</span><span class="value" id="ricevi-balance">-</span></div>
+                    <div class="info-item"><span class="label">{{ t('receive.wallet') }}</span><span class="value" id="ricevi-wallet">-</span></div>
+                    <div class="info-item"><span class="label">{{ t('receive.crypto_label') }}</span><span class="value" id="ricevi-crypto-label">-</span></div>
+                    <div class="info-item"><span class="label">{{ t('receive.network_label') }}</span><span class="value" id="ricevi-network">-</span></div>
+                    <div class="info-item"><span class="label">{{ t('receive.balance_label') }}</span><span class="value" id="ricevi-balance">-</span></div>
                     <div class="info-item" style="border-bottom: none;">
-                        <span class="label">🏠 Indirizzo</span>
+                        <span class="label">{{ t('receive.address_label') }}</span>
                         <span class="value address" id="ricevi-address" style="font-size: 12px; word-break: break-all;">-</span>
                     </div>
                 </div>
             </div>
             
             <div class="ricevi-explorer">
-                <span style="color: #888;">🔗 Visualizza su esploratore:</span>
-                <a id="ricevi-explorer-link" href="#" target="_blank" style="color: #00d4ff; margin-left: 10px;">Apri</a>
+                <span style="color: #888;">{{ t('receive.explorer') }}:</span>
+                <a id="ricevi-explorer-link" href="#" target="_blank" style="color: #00d4ff; margin-left: 10px;">{{ t('receive.open') }}</a>
                 <span id="ricevi-explorer-text" style="color: #555; margin-left: 10px; font-size: 12px;"></span>
             </div>
         </div>
         
         <div id="section-history" class="section">
             <div class="history-controls">
-                <h3 style="margin:0;">📜 Transazioni recenti</h3>
+                <h3 style="margin:0;">{{ t('history.title') }}</h3>
                 <div style="display: flex; gap: 10px; align-items: center;">
-                    <label style="color: #888; font-size: 12px;">Mostra:</label>
+                    <label style="color: #888; font-size: 12px;">{{ t('history.show') }}:</label>
                     <select id="history-limit" onchange="loadHistory()">
                         <option value="10">10</option>
                         <option value="20" selected>20</option>
                         <option value="50">50</option>
                         <option value="100">100</option>
                     </select>
-                    <button class="btn btn-sm" onclick="loadHistory()">🔄 Ricarica</button>
+                    <button class="btn btn-sm" onclick="loadHistory()">{{ t('history.reload_btn') }}</button>
                 </div>
             </div>
             <div class="history-container">
@@ -396,16 +461,16 @@
                     <thead>
                         <tr>
                             <th>#</th>
-                            <th>Data/Ora</th>
-                            <th>Tipo</th>
-                            <th style="text-align: right;">Importo</th>
-                            <th style="text-align: right;">Fee</th>
-                            <th>Da/A</th>
-                            <th style="color: #00d4ff;">Memo</th>
+                            <th>{{ t('history.date') }}</th>
+                            <th>{{ t('history.type') }}</th>
+                            <th style="text-align: right;">{{ t('history.amount') }}</th>
+                            <th style="text-align: right;">{{ t('history.fee') }}</th>
+                            <th>{{ t('history.from_to') }}</th>
+                            <th style="color: #00d4ff;">{{ t('history.memo') }}</th>
                         </tr>
                     </thead>
                     <tbody id="history-body">
-                        <tr><td colspan="7" style="padding: 20px; text-align: center; color: #888;">Caricamento storico...</td></tr>
+                        <tr><td colspan="7" style="padding: 20px; text-align: center; color: #888;">{{ t('history.loading') }}</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -413,10 +478,10 @@
         </div>
         
         <div id="section-rubrica" class="section">
-            <h3>📒 Rubrica</h3>
+            <h3>{{ t('contacts.title') }}</h3>
             <div class="rubrica-input-group">
-                <input type="text" id="contact-name" class="name-input" placeholder="Nome contatto">
-                <input type="text" id="contact-address" class="address-input" placeholder="Indirizzo">
+                <input type="text" id="contact-name" class="name-input" placeholder="{{ t('contacts.name_placeholder') }}">
+                <input type="text" id="contact-address" class="address-input" placeholder="{{ t('contacts.address_placeholder') }}">
                 <select id="contact-crypto" onchange="updateContactFilters()">
                     <option value="XRP">XRP</option>
                     <option value="XLM">XLM</option>
@@ -426,63 +491,63 @@
                     <option value="testnet">Testnet</option>
                     <option value="devnet">Devnet</option>
                 </select>
-                <input type="text" id="contact-note" class="note-input" placeholder="Note">
-                <button class="btn btn-success btn-sm" onclick="addContact()">➕ Aggiungi</button>
-                <button class="btn btn-sm" onclick="loadContacts()">🔄 Ricarica</button>
+                <input type="text" id="contact-note" class="note-input" placeholder="{{ t('contacts.note_placeholder') }}">
+                <button class="btn btn-success btn-sm" onclick="addContact()">{{ t('contacts.add') }}</button>
+                <button class="btn btn-sm" onclick="loadContacts()">{{ t('contacts.reload') }}</button>
             </div>
             <div class="contacts-container" id="contacts-list">
-                <div class="empty">Caricamento contatti...</div>
+                <div class="empty">{{ t('contacts.loading') }}</div>
             </div>
         </div>
         
         <div id="section-wallets" class="section">
-            <h3>📂 Wallet disponibili</h3>
-            <div class="wallets-list" id="wallets-list">Caricamento wallet...</div>
+            <h3>{{ t('wallets.title') }}</h3>
+            <div class="wallets-list" id="wallets-list">{{ t('wallets.loading') }}</div>
         </div>
         
         <div id="section-gestione" class="section">
-            <h3>🔧 Gestione Wallet</h3>
+            <h3>{{ t('management.title') }}</h3>
             <div class="wallet-actions">
-                <button class="btn" onclick="showCreateWallet()">➕ Crea Wallet</button>
-                <button class="btn" onclick="showImportWallet()">📥 Importa Wallet</button>
-                <button class="btn btn-danger" onclick="deleteWallet()">🗑️ Elimina Wallet</button>
+                <button class="btn" onclick="showCreateWallet()">{{ t('management.create') }}</button>
+                <button class="btn" onclick="showImportWallet()">{{ t('management.import') }}</button>
+                <button class="btn btn-danger" onclick="deleteWallet()">{{ t('management.delete') }}</button>
+                <button class="btn btn-secondary" onclick="showChangePassword()">{{ t('management.change_password') }}</button>
             </div>
         </div>
         
         <div id="section-donate" class="section">
-            <h3>☕ Buy Me a Coffee</h3>
-            <p style="color: #ccc; margin-bottom: 20px; font-size: 14px; line-height: 1.6;">
-                Se XRPWallet ti è utile e ti piace come gestisce i tuoi wallet XRP e XLM, 
-                considera una piccola donazione per supportare lo sviluppo continuo. 
-                Ogni contributo, anche minimo, aiuta a mantenere il progetto attivo, 
-                aggiungere nuove funzionalità e migliorare l'esperienza per tutti gli utenti.
+            <h3>{{ t('donate.title') }}</h3>
+            <p style="color: #ccc; margin-bottom: 20px; font-size: 14px; line-height: 1.8;">
+                {{ t('donate.description')|safe }}
                 <br><br>
-                ❤️ Grazie per il tuo supporto!
+                <span style="color: #ff6b35; font-weight: bold;">{{ t('donate.thanks') }}</span>
+                <br>
+                <span style="color: #555; font-size: 12px;">💡 <em>{{ t('donate.voluntary') }}</em></span>
             </p>
             
             <div class="donate-current-info">
-                <span style="color: #888;">🔗 Rete:</span>
+                <span style="color: #888;">{{ t('donate.network') }}:</span>
                 <span id="donate-current-network" style="color: #00d4ff; font-weight: bold;">MAINNET</span>
-                <span style="color: #888; margin-left: 10px;">🪙 Crypto:</span>
+                <span style="color: #888; margin-left: 10px;">{{ t('donate.crypto') }}:</span>
                 <span id="donate-current-crypto" style="color: #00d4ff; font-weight: bold;">XRP</span>
-                <span style="color: #555; margin-left: 10px; font-size: 12px;">(Scegli un importo e clicca su Invia)</span>
+                <span style="color: #555; margin-left: 10px; font-size: 12px;">({{ t('donate.choose_amount') }})</span>
             </div>
             
             <div id="donate-info" style="display: flex; flex-wrap: wrap; gap: 20px;">
                 <div id="donate-card" style="flex: 1; min-width: 300px; padding: 20px; border-radius: 10px; background: #0f3460; border-left: 4px solid #00aaff;">
                     <h4 id="donate-title" style="color: #00aaff; margin-bottom: 10px;">🟦 XRP</h4>
                     <div class="info-item">
-                        <span class="label">📌 Indirizzo</span>
+                        <span class="label">{{ t('donate.address') }}</span>
                         <span class="value address" id="donate-address" style="font-size: 11px; word-break: break-all;">-</span>
                     </div>
                     <div class="info-item">
-                        <span class="label">🌐 Rete</span>
+                        <span class="label">{{ t('donate.network') }}</span>
                         <span class="value" id="donate-network">-</span>
                     </div>
                     <div style="margin-top: 15px; display: flex; gap: 8px; flex-wrap: wrap;" id="donate-preset-buttons">
                     </div>
                     <div style="margin-top: 10px; padding: 8px 12px; background: #0a0a1a; border-radius: 5px; border: 1px solid #2ed57333;">
-                        <span style="color: #888; font-size: 11px;">✅ Scegli un importo e clicca su "Invia"</span>
+                        <span style="color: #888; font-size: 11px;">✅ {{ t('donate.choose_amount') }} <strong style="color: #2ed573;">"{{ t('send.send_btn') }}"</strong></span>
                     </div>
                 </div>
             </div>
@@ -490,27 +555,29 @@
         
         <div class="footer">
             <span class="xrp-icon">✦</span>
-            <span style="color: #888;">XRP/XLM Wallet Manager</span>
+            <span style="color: #888;">{{ t('app_name') }}</span>
             <span style="color: #555;"> · </span>
             <span style="color: #666;">by</span>
-            <a href="https://github.com/argo79" target="_blank" class="name">Arg0net</a>
+            <a href="#" onclick="openLink('https://github.com/argo79'); return false;" class="name">Arg0net</a>
             <span style="color: #555;"> · </span>
-            <span class="version">v2.0</span>
+            <span class="version">{{ t('app_version') }}</span>
             <span class="xrp-icon">✦</span>
             <br>
-            <span class="sub">Built with ❤️ on the XRP Ledger &amp; Stellar</span>
+            <span style="color: #333; font-size: 10px;">
+                <a href="#" onclick="openLink('https://github.com/argo79/XRPwallet'); return false;" style="color: #555; text-decoration: none;">{{ t('common.github') }}</a>
+            </span>
             <br>
-            <span style="color: #333; font-size: 9px;">
-                <a href="https://github.com/argo79/XRPwallet" target="_blank" style="color: #555; text-decoration: none;">🔗 GitHub Repository</a>
+            <span style="color: #444; font-size: 10px;">
+                <a href="#" onclick="openLink('https://repmap.arg0net.org'); return false;" style="color: #555; text-decoration: none;">🌐 arg0net.org</a>
             </span>
         </div>
     </div>
     
     <div id="createWalletModal" class="modal">
         <div class="modal-content">
-            <h2>➕ Crea Nuovo Wallet</h2>
+            <h2>{{ t('management.create_title') }}</h2>
             <div class="input-group">
-                <input type="text" id="new-wallet-name" placeholder="Nome wallet">
+                <input type="text" id="new-wallet-name" placeholder="{{ t('management.name') }}">
             </div>
             <div class="input-group">
                 <select id="new-wallet-crypto">
@@ -524,21 +591,21 @@
                 </select>
             </div>
             <div class="input-group">
-                <input type="password" id="new-wallet-passphrase" placeholder="Passphrase (opzionale)">
+                <input type="password" id="new-wallet-passphrase" placeholder="{{ t('management.passphrase') }}">
             </div>
             <div id="new-wallet-seed" class="seed-display" style="display:none;"></div>
             <div class="btn-group">
-                <button class="btn btn-success" onclick="createWallet()">✅ Crea</button>
-                <button class="btn" onclick="closeModal('createWalletModal')">❌ Annulla</button>
+                <button class="btn btn-success" onclick="createWallet()">{{ t('management.create_btn') }}</button>
+                <button class="btn" onclick="closeModal('createWalletModal')">{{ t('common.cancel') }}</button>
             </div>
         </div>
     </div>
     
     <div id="importWalletModal" class="modal">
         <div class="modal-content">
-            <h2>📥 Importa Wallet</h2>
+            <h2>{{ t('management.import_title') }}</h2>
             <div class="input-group">
-                <input type="text" id="import-wallet-name" placeholder="Nome wallet">
+                <input type="text" id="import-wallet-name" placeholder="{{ t('management.name') }}">
             </div>
             <div class="input-group">
                 <select id="import-wallet-crypto">
@@ -552,14 +619,34 @@
                 </select>
             </div>
             <div class="input-group">
-                <input type="text" id="import-seed" placeholder="Seed phrase / Private key / Seed XRP / Seed Stellar">
+                <input type="text" id="import-seed" placeholder="{{ t('management.seed') }}">
             </div>
             <div class="input-group">
-                <input type="password" id="import-passphrase" placeholder="Passphrase (opzionale)">
+                <input type="password" id="import-passphrase" placeholder="{{ t('management.passphrase') }}">
             </div>
             <div class="btn-group">
-                <button class="btn btn-success" onclick="importWallet()">✅ Importa</button>
-                <button class="btn" onclick="closeModal('importWalletModal')">❌ Annulla</button>
+                <button class="btn btn-success" onclick="importWallet()">{{ t('management.import_btn') }}</button>
+                <button class="btn" onclick="closeModal('importWalletModal')">{{ t('common.cancel') }}</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="changePasswordModal" class="modal">
+        <div class="modal-content">
+            <h2>{{ t('management.change_password') }}</h2>
+            <div class="input-group">
+                <input type="password" id="old-password" placeholder="{{ t('management.password_old') }}">
+            </div>
+            <div class="input-group">
+                <input type="password" id="new-password" placeholder="{{ t('management.password_new') }}">
+            </div>
+            <div class="input-group">
+                <input type="password" id="confirm-password" placeholder="{{ t('management.password_confirm') }}">
+            </div>
+            <div id="password-strength" style="color: #888; font-size: 12px; margin: 5px 0;"></div>
+            <div class="btn-group">
+                <button class="btn btn-success" onclick="changePassword()">{{ t('management.create_btn') }}</button>
+                <button class="btn" onclick="closeModal('changePasswordModal')">{{ t('common.cancel') }}</button>
             </div>
         </div>
     </div>
@@ -569,6 +656,222 @@
         let donateAmount = 0;
         let donateCrypto = 'XRP';
         let donateAddress = '';
+
+        // ============================================================
+        // 🔑 FUNZIONI PER TRADUZIONI
+        // ============================================================
+
+        let translations = {};
+        let translationsLoaded = false;
+
+        async function loadTranslations() {
+            try {
+                const resp = await fetch('/api/translations');
+                if (resp.ok) {
+                    translations = await resp.json();
+                    translationsLoaded = true;
+                    console.log('✅ Traduzioni caricate:', Object.keys(translations).length, 'chiavi');
+                } else {
+                    console.warn('⚠️ Errore caricamento traduzioni:', resp.status);
+                    // Usa traduzioni di fallback SILENZIOSO - senza mostrare errori
+                    translations = {
+                        'common': {
+                            'loading': '⏳ Caricamento...',
+                            'error': '❌ Errore',
+                            'success': '✅ Successo'
+                        }
+                    };
+                    translationsLoaded = true;
+                }
+            } catch(e) {
+                // 🔑 NON MOSTRARE ERRORI - SOLO CONSOLE LOG
+                console.log('ℹ️ Traduzioni non disponibili, uso fallback');
+                translations = {
+                    'common': {
+                        'loading': '⏳ Caricamento...',
+                        'error': '❌ Errore',
+                        'success': '✅ Successo'
+                    }
+                };
+                translationsLoaded = true;
+            }
+        }
+
+        function t(key) {
+            if (!translationsLoaded) {
+                // 🔑 RESTITUISCI LA CHIAVE SENZA MOSTRARE ERRORI
+                return key.split('.').pop() || key;
+            }
+            
+            const keys = key.split('.');
+            let value = translations;
+            for (const k of keys) {
+                if (value && value[k] !== undefined) {
+                    value = value[k];
+                } else {
+                    // 🔑 RESTITUISCI L'ULTIMA PARTE DELLA CHIAVE
+                    return keys[keys.length - 1] || key;
+                }
+            }
+            return value || keys[keys.length - 1] || key;
+        }
+
+        // Carica traduzioni all'avvio
+        loadTranslations();
+
+
+
+        // ============================================================
+        // 🔑 ATTESA DEL WALLET
+        // ============================================================
+
+        async function waitForWallet(maxRetries = 10) {
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    const resp = await fetch('/api/wallet/info');
+                    const data = await resp.json();
+                    // Se il wallet è caricato (ha un address valido)
+                    if (data.address && data.address !== 'None' && data.address !== null && data.address !== '-') {
+                        console.log('✅ Wallet caricato!');
+                        return true;
+                    }
+                    // Se ha un errore "Nessun wallet caricato", aspetta
+                    if (data.error && data.error.includes('Nessun wallet caricato')) {
+                        console.log(`⏳ Wallet non caricato, tentativo ${i + 1}/${maxRetries}...`);
+                    }
+                } catch(e) {
+                    console.log(`⏳ Errore connessione, tentativo ${i + 1}/${maxRetries}...`);
+                }
+                await new Promise(resolve => setTimeout(resolve, 300));
+            }
+            console.warn('⚠️ Wallet non caricato dopo ' + maxRetries + ' tentativi');
+            return false;
+        }
+        // ============================================================
+        // 🔑 FUNZIONE PER CAMBIARE LINGUA
+        // ============================================================
+
+        // 🔑 FUNZIONE SICURA PER OTTENERE TRADUZIONI SENZA ERRORI
+        function safeT(key, fallback) {
+            try {
+                const result = t(key);
+                // Se il risultato è una chiave (non tradotta), restituisci il fallback
+                if (result === key || result === key.split('.').pop()) {
+                    return fallback || result;
+                }
+                return result;
+            } catch(e) {
+                return fallback || key;
+            }
+        }
+
+
+        function setLanguage(lang) {
+            fetch('/set_language/' + lang)
+                .then(() => {
+                    loadTranslations();
+                    window.location.reload();
+                })
+                .catch(() => {
+                    window.location.href = '/set_language/' + lang;
+                });
+        }
+
+        // ============================================================
+        // 🔑 FUNZIONI PER LINK E COPIA - FIX APP STANDALONE
+        // ============================================================
+
+        function openLink(url) {
+            try {
+                if (window.Qt && window.Qt.openUrl) {
+                    console.log('🌐 Apertura link via bridge Qt:', url);
+                    window.Qt.openUrl(url);
+                    return false;
+                }
+                if (window.navigator && window.navigator.userAgent) {
+                    window.open(url, '_blank');
+                } else {
+                    window.location.href = url;
+                }
+            } catch (e) {
+                const link = document.createElement('a');
+                link.href = url;
+                link.target = '_blank';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+            return false;
+        }
+
+        function copyToClipboard(text) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => {
+                    showMessage(t('receive.copied'), 'success');
+                }).catch(() => {
+                    fallbackCopy(text);
+                });
+            } else {
+                fallbackCopy(text);
+            }
+        }
+
+        function fallbackCopy(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            textarea.style.left = '-9999px';
+            textarea.style.top = '-9999px';
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                showMessage(t('receive.copied'), 'success');
+            } catch (e) {
+                showMessage(t('receive.copied_error'), 'error');
+            }
+            document.body.removeChild(textarea);
+        }
+
+        function copyAddressRicevi() {
+            const address = document.getElementById('ricevi-address').textContent;
+            if (address && address !== '-') {
+                copyToClipboard(address);
+            }
+        }
+
+        function downloadQRCode() {
+            const image = document.getElementById('qrcode-image');
+            if (image.src && image.src !== '') {
+                fetch('/api/wallet/qrcode_download')
+                    .then(response => response.blob())
+                    .then(blob => {
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'xrpwallet_qrcode.png';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        window.URL.revokeObjectURL(url);
+                        showMessage('✅ QR Code scaricato!', 'success');
+                    })
+                    .catch(() => {
+                        window.open('/api/wallet/qrcode_download', '_blank');
+                    });
+            } else {
+                showMessage(t('receive.qr_error'), 'error');
+            }
+        }
+
+        function isStandalone() {
+            return window.navigator.userAgent.indexOf('QtWebEngine') !== -1;
+        }
+
+        // ============================================================
+        // 🔑 FUNZIONI ESISTENTI CON TRADUZIONI
+        // ============================================================
 
         function toggleSection(id) {
             const section = document.getElementById('section-' + id);
@@ -598,7 +901,6 @@
             if (id === 'history') loadHistory();
             if (id === 'ricevi') loadQRCode();
             if (id === 'rubrica') {
-                // 🔑 AGGIORNA I FILTRI DELLA RUBRICA CON I VALORI DEL MENU
                 document.getElementById('contact-crypto').value = document.getElementById('crypto-select').value;
                 document.getElementById('contact-network').value = document.getElementById('network-select').value;
                 loadContacts();
@@ -618,62 +920,26 @@
             donateAddress = '';
         }
 
-        async function changeCrypto() {
-            const crypto = document.getElementById('crypto-select').value;
-            document.getElementById('header-crypto').textContent = crypto;
-            document.getElementById('send-title').textContent = '📤 Invia ' + crypto;
-            document.getElementById('send-crypto').textContent = crypto;
-            document.getElementById('ricevi-crypto').textContent = crypto;
-            const badge = document.getElementById('crypto-badge');
-            badge.textContent = crypto;
-            badge.className = 'badge ' + (crypto === 'XRP' ? 'badge-xrp' : 'badge-xlm');
-            await fetch('/api/wallet/change_crypto', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ crypto: crypto })
-            });
-            loadInfo();
-            loadHistory();
-            loadWallets();
-            // 🔑 AGGIORNA I FILTRI DELLA RUBRICA
-            document.getElementById('contact-crypto').value = crypto;
-            if (document.getElementById('section-rubrica').classList.contains('visible')) {
-                loadContacts();
-            }
-            if (document.getElementById('section-donate').classList.contains('visible')) {
-                loadDonateInfo();
-            }
-        }
-
-        async function changeNetwork() {
-            const network = document.getElementById('network-select').value;
-            const badge = document.getElementById('network-badge');
-            badge.textContent = network.toUpperCase();
-            badge.className = 'badge ' + (network === 'mainnet' ? 'badge-mainnet' : 'badge-testnet');
-            await fetch('/api/wallet/change_network', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ network: network })
-            });
-            loadInfo();
-            loadHistory();
-            loadWallets();
-            // 🔑 AGGIORNA I FILTRI DELLA RUBRICA
-            document.getElementById('contact-network').value = network;
-            if (document.getElementById('section-rubrica').classList.contains('visible')) {
-                loadContacts();
-            }
-            if (document.getElementById('section-donate').classList.contains('visible')) {
-                loadDonateInfo();
-            }
-        }
-
         function showMessage(msg, type) {
             const el = document.getElementById('message');
+            
+            // 🔑 NON MOSTRARE ERRORI PER LE TRADUZIONI
+            if (msg && (msg.includes('translations') || msg.includes('Traduzioni') || msg === '❌ Errore' && type === 'error')) {
+                return;
+            }
+            
+            // 🔑 SE IL MESSAGGIO È VUOTO O È SOLO '❌ Errore' E IL TIPO È ERROR, NON MOSTRARE
+            if (type === 'error' && (!msg || msg === '❌ Errore' || msg === 'Errore' || msg === 'Error')) {
+                return;
+            }
+            
             el.textContent = msg;
             el.className = 'message ' + type;
             el.style.display = 'block';
-            setTimeout(() => { el.style.display = 'none'; }, 8000);
+            const timeout = type === 'error' ? 10000 : 5000;
+            setTimeout(() => { 
+                el.style.display = 'none'; 
+            }, timeout);
         }
 
         function showModal(id) {
@@ -684,15 +950,24 @@
             document.getElementById(id).style.display = 'none';
         }
 
-        async function loadInfo() {
+        async function loadInfo(retryCount = 0) {
             try {
                 const resp = await fetch('/api/wallet/info');
                 const data = await resp.json();
+                
+                // 🔑 SE IL WALLET NON È CARICATO, RIPROVA DOPO 500ms
+                if (data.error && data.error === "Nessun wallet caricato" && retryCount < 5) {
+                    console.log(`⏳ Wallet non caricato, riprovo... (tentativo ${retryCount + 1})`);
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    return loadInfo(retryCount + 1);
+                }
+                
                 if (data.error) {
                     document.getElementById('wallet-name').textContent = '❌';
                     document.getElementById('wallet-address').textContent = data.error;
                     return;
                 }
+                
                 document.getElementById('wallet-name').textContent = data.wallet_name || '-';
                 document.getElementById('wallet-address').textContent = data.address || '-';
                 const symbol = data.crypto || 'XRP';
@@ -708,14 +983,22 @@
                 const netBadge = document.getElementById('network-badge');
                 netBadge.textContent = (data.network || 'testnet').toUpperCase();
                 netBadge.className = 'badge ' + ((data.network || 'testnet') === 'mainnet' ? 'badge-mainnet' : 'badge-testnet');
+                
             } catch (e) {
-                showMessage('❌ Errore caricamento info', 'error');
+                // 🔑 SE LA CHIAMATA FALLISCE, RIPROVA
+                if (retryCount < 5) {
+                    console.log(`⏳ Errore loadInfo, riprovo... (tentativo ${retryCount + 1})`);
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    return loadInfo(retryCount + 1);
+                }
+                // Non mostrare errore - il wallet potrebbe non essere caricato
+                console.warn('⚠️ loadInfo fallito dopo 5 tentativi');
             }
         }
 
         async function loadWallets() {
             const list = document.getElementById('wallets-list');
-            list.innerHTML = 'Caricamento...';
+            list.innerHTML = t('common.loading');
             try {
                 const resp = await fetch('/api/wallet/list');
                 const data = await resp.json();
@@ -724,7 +1007,7 @@
                     return;
                 }
                 if (!data.wallets || data.wallets.length === 0) {
-                    list.innerHTML = '❌ Nessun wallet salvato';
+                    list.innerHTML = t('wallets.no_wallets');
                     return;
                 }
                 list.innerHTML = '';
@@ -738,14 +1021,14 @@
                             <span class="crypto-badge ${badgeClass}">${crypto}</span>
                         </div>
                         <div class="address">${w.address || 'N/A'}</div>
-                        <div class="network">Rete: ${(w.network || 'testnet').toUpperCase()}</div>
+                        <div class="network">${t('wallets.network')}: ${(w.network || 'testnet').toUpperCase()}</div>
                     `;
                     div.onclick = () => switchWallet(w.name);
                     list.appendChild(div);
                 });
             } catch (e) {
                 console.error('Errore loadWallets:', e);
-                list.innerHTML = '❌ Errore caricamento wallet';
+                list.innerHTML = t('common.error');
             }
         }
 
@@ -758,20 +1041,19 @@
                 });
                 const data = await resp.json();
                 if (data.success) {
-                    showMessage('✅ ' + data.message, 'success');
+                    showMessage(t('wallets.switched').replace('{name}', name), 'success');
                     if (data.crypto) document.getElementById('crypto-select').value = data.crypto;
                     if (data.network) document.getElementById('network-select').value = data.network;
                     loadInfo();
                     loadWallets();
                     loadHistory();
-                    // 🔑 AGGIORNA I FILTRI DELLA RUBRICA
                     document.getElementById('contact-crypto').value = data.crypto || 'XRP';
                     document.getElementById('contact-network').value = data.network || 'testnet';
                 } else {
-                    showMessage('❌ ' + data.error, 'error');
+                    showMessage(t('wallets.switch_error'), 'error');
                 }
             } catch (e) {
-                showMessage('❌ Errore cambio wallet', 'error');
+                showMessage(t('wallets.switch_error'), 'error');
             }
         }
 
@@ -788,7 +1070,7 @@
             const crypto = document.getElementById('new-wallet-crypto').value;
             const network = document.getElementById('new-wallet-network').value;
             if (!name) {
-                showMessage('❌ Inserisci un nome per il wallet', 'error');
+                showMessage(t('management.create_error'), 'error');
                 return;
             }
             try {
@@ -800,19 +1082,22 @@
                 const data = await resp.json();
                 if (data.success) {
                     const seedEl = document.getElementById('new-wallet-seed');
-                    seedEl.textContent = '📝 Seed phrase: ' + data.seed_phrase;
+                    seedEl.textContent = t('management.seed_phrase').replace('{phrase}', data.seed_phrase);
                     seedEl.style.display = 'block';
-                    showMessage('✅ ' + data.message + ' su ' + network.toUpperCase(), 'success');
+                    showMessage(t('management.create_success')
+                        .replace('{name}', name)
+                        .replace('{network}', network.toUpperCase())
+                        .replace('{crypto}', crypto), 'success');
                     setTimeout(() => {
                         closeModal('createWalletModal');
                         loadWallets();
                         loadInfo();
                     }, 3000);
                 } else {
-                    showMessage('❌ ' + data.error, 'error');
+                    showMessage(t('management.create_error'), 'error');
                 }
             } catch (e) {
-                showMessage('❌ Errore creazione wallet', 'error');
+                showMessage(t('management.create_error'), 'error');
             }
         }
 
@@ -830,7 +1115,7 @@
             const crypto = document.getElementById('import-wallet-crypto').value;
             const network = document.getElementById('import-wallet-network').value;
             if (!name || !seed) {
-                showMessage('❌ Inserisci nome e seed', 'error');
+                showMessage(t('management.import_error'), 'error');
                 return;
             }
             try {
@@ -841,25 +1126,28 @@
                 });
                 const data = await resp.json();
                 if (data.success) {
-                    showMessage('✅ ' + data.message + ' su ' + network.toUpperCase(), 'success');
+                    showMessage(t('management.import_success')
+                        .replace('{name}', name)
+                        .replace('{network}', network.toUpperCase())
+                        .replace('{crypto}', crypto), 'success');
                     closeModal('importWalletModal');
                     loadWallets();
                     loadInfo();
                 } else {
-                    showMessage('❌ ' + data.error, 'error');
+                    showMessage(t('management.import_error'), 'error');
                 }
             } catch (e) {
-                showMessage('❌ Errore importazione wallet', 'error');
+                showMessage(t('management.import_error'), 'error');
             }
         }
 
         async function deleteWallet() {
             const active = document.getElementById('wallet-name').textContent;
             if (!active || active === '-') {
-                showMessage('❌ Nessun wallet attivo da eliminare', 'error');
+                showMessage(t('wallets.delete_error'), 'error');
                 return;
             }
-            if (!confirm('⚠️ Eliminare il wallet "' + active + '"?')) return;
+            if (!confirm(t('wallets.delete_confirm').replace('{name}', active))) return;
             try {
                 const resp = await fetch('/api/wallet/delete', {
                     method: 'POST',
@@ -868,14 +1156,14 @@
                 });
                 const data = await resp.json();
                 if (data.success) {
-                    showMessage('✅ ' + data.message, 'success');
+                    showMessage(t('wallets.delete_success').replace('{name}', active), 'success');
                     loadWallets();
                     loadInfo();
                 } else {
-                    showMessage('❌ ' + data.error, 'error');
+                    showMessage(t('wallets.delete_error'), 'error');
                 }
             } catch (e) {
-                showMessage('❌ Errore eliminazione wallet', 'error');
+                showMessage(t('wallets.delete_error'), 'error');
             }
         }
 
@@ -884,6 +1172,7 @@
             const image = document.getElementById('qrcode-image');
             loading.style.display = 'block';
             image.style.display = 'none';
+            loading.textContent = t('receive.generate_qr');
             try {
                 const resp = await fetch('/api/wallet/qrcode');
                 const data = await resp.json();
@@ -913,36 +1202,15 @@
                 const link = document.getElementById('ricevi-explorer-link');
                 link.href = explorerUrl + data.address;
                 link.textContent = '🔗 ' + explorerName;
+                link.onclick = function(e) {
+                    e.preventDefault();
+                    openLink(this.href);
+                    return false;
+                };
                 document.getElementById('ricevi-explorer-text').textContent = data.address;
             } catch (e) {
-                loading.textContent = '❌ Errore: ' + e.message;
+                loading.textContent = t('receive.qr_error');
                 console.error('Errore QR Code:', e);
-            }
-        }
-
-        function downloadQRCode() {
-            const image = document.getElementById('qrcode-image');
-            if (image.src && image.src !== '') {
-                window.location.href = '/api/wallet/qrcode_download';
-            } else {
-                showMessage('❌ QR Code non disponibile', 'error');
-            }
-        }
-
-        function copyAddressRicevi() {
-            const address = document.getElementById('ricevi-address').textContent;
-            if (address && address !== '-') {
-                navigator.clipboard.writeText(address).then(() => {
-                    showMessage('✅ Indirizzo copiato negli appunti!', 'success');
-                }).catch(() => {
-                    const textarea = document.createElement('textarea');
-                    textarea.value = address;
-                    document.body.appendChild(textarea);
-                    textarea.select();
-                    document.execCommand('copy');
-                    document.body.removeChild(textarea);
-                    showMessage('✅ Indirizzo copiato negli appunti!', 'success');
-                });
             }
         }
 
@@ -950,7 +1218,7 @@
             const tbody = document.getElementById('history-body');
             const summary = document.getElementById('history-summary');
             const limit = document.getElementById('history-limit')?.value || 20;
-            tbody.innerHTML = '<tr><td colspan="7" style="padding: 20px; text-align: center; color: #888;">⏳ Caricamento...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" style="padding: 20px; text-align: center; color: #888;">' + t('history.loading') + '</td></tr>';
             try {
                 const resp = await fetch('/api/wallet/history?limit=' + limit);
                 const data = await resp.json();
@@ -960,19 +1228,20 @@
                 }
                 const transactions = data.transactions || [];
                 if (transactions.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="7" style="padding: 20px; text-align: center; color: #888;">📭 Nessuna transazione trovata</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="7" style="padding: 20px; text-align: center; color: #888;">' + t('history.no_transactions') + '</td></tr>';
                 } else {
                     tbody.innerHTML = transactions.map(tx => {
                         const isIncoming = tx.type === 'RICEVUTO';
                         const isOutgoing = tx.type === 'INVIATO';
                         const color = isIncoming ? '#2ed573' : (isOutgoing ? '#ff6b81' : '#ffd93d');
                         const icon = isIncoming ? '⬇️' : (isOutgoing ? '⬆️' : '🔄');
+                        const typeLabel = isIncoming ? t('history.received') : (isOutgoing ? t('history.sent') : t('history.other'));
                         const memo = tx.memo || '';
                         const memoDisplay = memo ? '📝 ' + memo.substring(0, 64) + (memo.length > 64 ? '...' : '') : '';
                         return '<tr>' +
                             '<td>' + (tx.index || '-') + '</td>' +
                             '<td style="white-space: nowrap;">' + (tx.date || '-') + '</td>' +
-                            '<td style="color: ' + color + '; font-weight: bold;">' + icon + ' ' + (tx.type || '-') + '</td>' +
+                            '<td style="color: ' + color + '; font-weight: bold;">' + icon + ' ' + typeLabel + '</td>' +
                             '<td style="text-align: right; color: ' + color + ';">' + (tx.amount || '-') + '</td>' +
                             '<td style="text-align: right; color: #888;">' + (tx.fee || '-') + '</td>' +
                             '<td style="font-size: 12px; word-break: break-all;">' + (tx.from_to || '-') + '</td>' +
@@ -983,10 +1252,10 @@
                 const crypto = data.crypto || 'XRP';
                 const network = data.network || 'testnet';
                 const balance = data.balance !== undefined ? data.balance.toFixed(6) + ' ' + crypto : '---';
-                summary.textContent = '🔗 ' + network.toUpperCase() + ' | ' + crypto + ' | Mostrate: ' + transactions.length + ' transazioni | Saldo: ' + balance;
+                summary.textContent = '🔗 ' + network.toUpperCase() + ' | ' + crypto + ' | ' + t('history.transactions_count').replace('{count}', transactions.length) + ' | ' + t('history.balance') + ': ' + balance;
             } catch (e) {
                 console.error('Errore loadHistory:', e);
-                tbody.innerHTML = '<tr><td colspan="7" style="padding: 20px; text-align: center; color: #ff4757;">❌ Errore caricamento storico: ' + e.message + '</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" style="padding: 20px; text-align: center; color: #ff4757;">❌ ' + t('history.error') + ': ' + e.message + '</td></tr>';
             }
         }
 
@@ -1000,24 +1269,24 @@
             const statusText = document.getElementById('send-status');
             const crypto = document.getElementById('crypto-select').value;
             if (!dest || !amount) {
-                showMessage('❌ Inserisci destinazione e importo', 'error');
+                showMessage(t('send.error'), 'error');
                 return;
             }
             progress.style.display = 'block';
             progressBar.style.width = '0%';
-            statusText.textContent = '⏳ Verifica destinatario...';
+            statusText.textContent = t('send.sending');
             sendBtn.disabled = true;
-            sendBtn.textContent = '⏳ Invio...';
+            sendBtn.textContent = t('send.sending');
             try {
                 progressBar.style.width = '20%';
                 const contacts = await fetch('/api/contacts/list').then(r => r.json());
                 const contact = (contacts.contacts || []).find(c => c.nome.toLowerCase() === dest.toLowerCase());
                 if (contact) {
                     document.getElementById('send-dest').value = contact.indirizzo;
-                    statusText.textContent = '📒 Contatto risolto';
+                    statusText.textContent = t('send.contact_resolved').replace('{name}', contact.nome);
                 }
                 progressBar.style.width = '50%';
-                statusText.textContent = '📡 Invio transazione...';
+                statusText.textContent = t('send.sending');
                 const resp = await fetch('/api/wallet/send', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -1033,33 +1302,33 @@
                 statusText.textContent = '⏳ Attendere conferma...';
                 if (data.success) {
                     progressBar.style.width = '100%';
-                    statusText.textContent = '✅ Transazione completata!';
-                    showMessage('✅ ' + data.message, 'success');
+                    statusText.textContent = t('send.success');
+                    showMessage(t('send.success'), 'success');
                     loadInfo();
                     loadHistory();
                     document.getElementById('send-dest').value = '';
                     document.getElementById('send-amount').value = '';
                     document.getElementById('send-memo').value = '';
                 } else {
-                    statusText.textContent = '❌ ' + data.error;
-                    showMessage('❌ ' + data.error, 'error');
+                    statusText.textContent = t('send.error');
+                    showMessage(t('send.error'), 'error');
                 }
             } catch (e) {
-                statusText.textContent = '❌ Errore: ' + e.message;
-                showMessage('❌ Errore invio transazione', 'error');
+                statusText.textContent = t('send.error');
+                showMessage(t('send.error'), 'error');
             } finally {
                 setTimeout(() => {
                     progress.style.display = 'none';
                     progressBar.style.width = '0%';
                     sendBtn.disabled = false;
-                    sendBtn.textContent = '📤 Invia';
+                    sendBtn.textContent = t('send.send_btn');
                 }, 2000);
             }
         }
 
         async function loadContacts() {
             const container = document.getElementById('contacts-list');
-            container.innerHTML = '<div class="empty">⏳ Caricamento...</div>';
+            container.innerHTML = '<div class="empty">' + t('contacts.loading') + '</div>';
             try {
                 const resp = await fetch('/api/contacts/list');
                 const data = await resp.json();
@@ -1068,7 +1337,6 @@
                     return;
                 }
                 
-                // 🔑 USA I FILTRI DEI SELECT DELLA RUBRICA (NON QUELLI DEL MENU PRINCIPALE)
                 const filterCrypto = document.getElementById('contact-crypto').value || 'XRP';
                 const filterNetwork = document.getElementById('contact-network').value || 'mainnet';
                 
@@ -1079,7 +1347,7 @@
                 );
                 
                 if (filtered.length === 0) {
-                    container.innerHTML = '<div class="empty">📭 Nessun contatto per ' + filterCrypto + ' su ' + filterNetwork.toUpperCase() + '</div>';
+                    container.innerHTML = '<div class="empty">' + t('contacts.empty') + ' per ' + filterCrypto + ' su ' + filterNetwork.toUpperCase() + '</div>';
                     return;
                 }
                 
@@ -1096,44 +1364,40 @@
                             '</div>' +
                         '</div>' +
                         '<div class="contact-actions">' +
-                            '<button class="btn btn-sm" onclick="useContact(\'' + c.indirizzo + '\')">📤 Usa</button>' +
-                            '<button class="btn btn-danger btn-sm" onclick="deleteContact(\'' + c.nome + '\')">🗑️</button>' +
+                            '<button class="btn btn-sm" onclick="useContact(\'' + c.indirizzo + '\')">' + t('contacts.use') + '</button>' +
+                            '<button class="btn btn-danger btn-sm" onclick="deleteContact(\'' + c.nome + '\')">' + t('contacts.delete') + '</button>' +
                         '</div>' +
                     '</div>';
                 }).join('');
                 
             } catch (e) {
                 console.error('Errore loadContacts:', e);
-                container.innerHTML = '<div class="empty" style="color: #ff4757;">❌ Errore caricamento contatti</div>';
+                container.innerHTML = '<div class="empty" style="color: #ff4757;">❌ ' + t('common.error') + '</div>';
             }
         }
 
-        // 🔑 FUNZIONE PER AGGIORNARE I FILTRI DELLA RUBRICA
         function updateContactFilters() {
-            // Quando l'utente cambia i filtri nella rubrica, ricarica i contatti
             loadContacts();
         }
 
         async function addContact() {
             const name = document.getElementById('contact-name').value.trim();
             const address = document.getElementById('contact-address').value.trim();
-            // 🔑 USA I FILTRI SELEZIONATI NELLA RUBRICA
             const crypto = document.getElementById('contact-crypto').value;
             const network = document.getElementById('contact-network').value;
             const note = document.getElementById('contact-note').value.trim();
             
             if (!name || !address) {
-                showMessage('❌ Inserisci nome e indirizzo', 'error');
+                showMessage(t('contacts.add_error'), 'error');
                 return;
             }
             
-            // Validazione base dell'indirizzo
             if (crypto === 'XRP' && !address.startsWith('r')) {
-                showMessage('❌ Indirizzo XRP deve iniziare con r', 'error');
+                showMessage(t('contacts.add_error'), 'error');
                 return;
             }
             if (crypto === 'XLM' && !address.startsWith('G')) {
-                showMessage('❌ Indirizzo XLM deve iniziare con G', 'error');
+                showMessage(t('contacts.add_error'), 'error');
                 return;
             }
             
@@ -1145,29 +1409,29 @@
                         name, 
                         address, 
                         note, 
-                        crypto,      // 🔑 USA LA CRYPTO SELEZIONATA NELLA RUBRICA
-                        network,     // 🔑 USA LA RETE SELEZIONATA NELLA RUBRICA
+                        crypto,
+                        network,
                         keyword: '', 
                         index: 0 
                     })
                 });
                 const data = await resp.json();
                 if (data.success) {
-                    showMessage('✅ ' + data.message, 'success');
+                    showMessage(t('contacts.added').replace('{name}', name), 'success');
                     document.getElementById('contact-name').value = '';
                     document.getElementById('contact-address').value = '';
                     document.getElementById('contact-note').value = '';
                     loadContacts();
                 } else {
-                    showMessage('❌ ' + data.error, 'error');
+                    showMessage(t('contacts.add_error'), 'error');
                 }
             } catch (e) {
-                showMessage('❌ Errore aggiunta contatto', 'error');
+                showMessage(t('contacts.add_error'), 'error');
             }
         }
 
         async function deleteContact(name) {
-            if (!confirm('⚠️ Eliminare il contatto "' + name + '"?')) return;
+            if (!confirm(t('contacts.delete_confirm').replace('{name}', name))) return;
             try {
                 const resp = await fetch('/api/contacts/delete', {
                     method: 'POST',
@@ -1179,19 +1443,19 @@
                 });
                 const data = await resp.json();
                 if (data.success) {
-                    showMessage('✅ ' + data.message, 'success');
+                    showMessage(t('contacts.deleted').replace('{name}', name), 'success');
                     loadContacts();
                 } else {
-                    showMessage('❌ ' + data.error, 'error');
+                    showMessage(t('contacts.delete_error'), 'error');
                 }
             } catch (e) {
-                showMessage('❌ Errore eliminazione contatto', 'error');
+                showMessage(t('contacts.delete_error'), 'error');
             }
         }
 
         function useContact(address) {
             document.getElementById('send-dest').value = address;
-            showMessage('📤 Indirizzo inserito nel campo destinazione', 'info');
+            showMessage(t('contacts.use'), 'info');
         }
 
         async function loadDonateInfo() {
@@ -1245,7 +1509,7 @@
                     onclick="donatePreset('${crypto}', ${amount})">${amount} ${crypto}</button>`
             ).join('');
             
-            buttonsContainer.innerHTML += `<button class="donate-preset-btn donate-preset-btn-custom" onclick="donateCustom('${crypto}')">✏️ Altro</button>`;
+            buttonsContainer.innerHTML += `<button class="donate-preset-btn donate-preset-btn-custom" onclick="donateCustom('${crypto}')">${t('donate.custom')}</button>`;
             
             document.getElementById('donate-current-crypto').textContent = crypto;
             document.getElementById('donate-current-network').textContent = network.toUpperCase();
@@ -1257,7 +1521,7 @@
             
             document.getElementById('send-dest').value = addr || (crypto === 'XRP' ? data.xrp.mainnet : data.xlm.mainnet);
             document.getElementById('send-amount').value = suggested;
-            document.getElementById('send-memo').value = 'Donazione XRPWallet ' + crypto;
+            document.getElementById('send-memo').value = t('donate.donation_memo').replace('{crypto}', crypto);
             
             donateAddress = document.getElementById('send-dest').value;
             donateAmount = suggested;
@@ -1273,44 +1537,185 @@
             
             document.getElementById('send-dest').value = address;
             document.getElementById('send-amount').value = amount;
-            document.getElementById('send-memo').value = 'Donazione XRPWallet ' + crypto;
+            document.getElementById('send-memo').value = t('donate.donation_memo').replace('{crypto}', crypto);
             
-            showMessage('📤 Importo donazione: ' + amount + ' ' + crypto, 'info');
+            showMessage(t('donate.amount_selected').replace('{amount}', amount).replace('{crypto}', crypto), 'info');
             document.getElementById('send-dest').scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
 
         function donateCustom(crypto) {
-            const amount = prompt('Inserisci l\'importo in ' + crypto + ' da donare:');
+            const amount = prompt(t('donate.custom_prompt').replace('{crypto}', crypto));
             if (amount === null) return;
             
             const numAmount = parseFloat(amount);
             if (isNaN(numAmount) || numAmount <= 0) {
-                showMessage('❌ Importo non valido', 'error');
+                showMessage(t('donate.invalid_amount'), 'error');
                 return;
             }
             
             donatePreset(crypto, numAmount);
         }
 
-        loadInfo();
-        loadHistory();
-        loadWallets();
-        loadContacts();
+        // ============================================================
+        // 🔑 CAMBIO PASSWORD CON TRADUZIONI
+        // ============================================================
 
-        // 🔑 SINCRONIZZA I FILTRI DELLA RUBRICA CON I MENU PRINCIPALI ALL'AVVIO
-        document.getElementById('contact-crypto').value = document.getElementById('crypto-select').value;
-        document.getElementById('contact-network').value = document.getElementById('network-select').value;
+        function showChangePassword() {
+            document.getElementById('old-password').value = '';
+            document.getElementById('new-password').value = '';
+            document.getElementById('confirm-password').value = '';
+            document.getElementById('password-strength').textContent = '';
+            showModal('changePasswordModal');
+        }
 
-        document.getElementById('crypto-select').addEventListener('change', function() {
-            if (document.getElementById('section-donate').classList.contains('visible')) {
-                loadDonateInfo();
+        function checkPasswordStrength(password) {
+            const strengthEl = document.getElementById('password-strength');
+            if (password.length === 0) {
+                strengthEl.textContent = '';
+                strengthEl.style.color = '#888';
+                return;
             }
-        });
+            
+            let strength = 0;
+            if (password.length >= 8) strength++;
+            if (password.match(/[a-z]/)) strength++;
+            if (password.match(/[A-Z]/)) strength++;
+            if (password.match(/[0-9]/)) strength++;
+            if (password.match(/[^a-zA-Z0-9]/)) strength++;
+            
+            const levels = [t('management.password_strength').replace('{strength}', 'Molto debole'), 
+                           t('management.password_strength').replace('{strength}', 'Debole'),
+                           t('management.password_strength').replace('{strength}', 'Media'),
+                           t('management.password_strength').replace('{strength}', 'Forte'),
+                           t('management.password_strength').replace('{strength}', 'Molto forte')];
+            const colors = ['#ff4757', '#ff6b81', '#ffd93d', '#2ed573', '#00d4ff'];
+            
+            const idx = Math.min(strength, 4);
+            strengthEl.textContent = levels[idx];
+            strengthEl.style.color = colors[idx];
+        }
 
-        document.getElementById('network-select').addEventListener('change', function() {
-            if (document.getElementById('section-donate').classList.contains('visible')) {
-                loadDonateInfo();
+        async function changePassword() {
+            const oldPassword = document.getElementById('old-password').value.trim();
+            const newPassword = document.getElementById('new-password').value.trim();
+            const confirmPassword = document.getElementById('confirm-password').value.trim();
+            
+            if (!oldPassword) {
+                showMessage(t('management.password_wrong'), 'error');
+                return;
             }
+            
+            if (!newPassword) {
+                showMessage(t('management.password_short'), 'error');
+                return;
+            }
+            
+            if (newPassword.length < 6) {
+                showMessage(t('management.password_short'), 'error');
+                return;
+            }
+            
+            if (newPassword !== confirmPassword) {
+                showMessage(t('management.password_mismatch'), 'error');
+                return;
+            }
+            
+            if (newPassword === oldPassword) {
+                showMessage(t('management.password_same'), 'error');
+                return;
+            }
+            
+            try {
+                const resp = await fetch('/api/user/change_password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        old_password: oldPassword,
+                        new_password: newPassword,
+                        confirm_password: confirmPassword
+                    })
+                });
+                
+                const data = await resp.json();
+                
+                if (data.success) {
+                    showMessage(t('management.password_changed'), 'success');
+                    closeModal('changePasswordModal');
+                    document.getElementById('old-password').value = '';
+                    document.getElementById('new-password').value = '';
+                    document.getElementById('confirm-password').value = '';
+                    document.getElementById('password-strength').textContent = '';
+                } else {
+                    showMessage(t('management.password_error'), 'error');
+                }
+            } catch (e) {
+                showMessage(t('management.password_error'), 'error');
+                console.error('Errore changePassword:', e);
+            }
+        }
+
+        // ============================================================
+        // 🔑 INIZIALIZZAZIONE
+        // ============================================================
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            // 🔑 CARICA LE TRADUZIONI IN SILENZIO
+            try {
+                await loadTranslations();
+            } catch(e) {
+                // Ignora silenziosamente
+            }
+            
+            // Sincronizza i filtri
+            document.getElementById('contact-crypto').value = document.getElementById('crypto-select').value;
+            document.getElementById('contact-network').value = document.getElementById('network-select').value;
+
+            // Blocca tutti i link esterni
+            document.querySelectorAll('a[href^="http"]').forEach(function(link) {
+                if (link.hasAttribute('data-link-handled')) return;
+                link.setAttribute('data-link-handled', 'true');
+                
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const url = this.href;
+                    console.log('🌐 Link bloccato (JS):', url);
+                    openLink(url);
+                    return false;
+                });
+            });
+
+            // Event listener per la forza della password
+            const newPasswordInput = document.getElementById('new-password');
+            if (newPasswordInput) {
+                newPasswordInput.addEventListener('input', function() {
+                    checkPasswordStrength(this.value);
+                });
+            }
+
+            // 🔑 ASPETTA CHE IL WALLET SIA CARICATO
+            await waitForWallet();
+            
+            // 🔑 ORA CARICA TUTTI I DATI
+            loadInfo();
+            loadHistory();
+            loadWallets();
+            loadContacts();
+
+            // Event listeners per sezioni donate
+            document.getElementById('crypto-select').addEventListener('change', function() {
+                if (document.getElementById('section-donate').classList.contains('visible')) {
+                    loadDonateInfo();
+                }
+            });
+
+            document.getElementById('network-select').addEventListener('change', function() {
+                if (document.getElementById('section-donate').classList.contains('visible')) {
+                    loadDonateInfo();
+                }
+            });
+            
+            console.log('🏦 XRPWallet ' + (t('app_version') || 'v1.1.0') + ' - ' + (isStandalone() ? '🔧 Modalità standalone' : '🌐 Modalità web'));
         });
     </script>
 </body>

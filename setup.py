@@ -9,7 +9,7 @@ import os
 import re
 
 # Leggi la versione da wallet_manager.py
-version = "1.0.0"
+version = "1.1.0"
 
 # Leggi il README se esiste
 try:

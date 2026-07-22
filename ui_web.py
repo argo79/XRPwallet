@@ -2,6 +2,7 @@
 """
 ui_web.py - Interfaccia web per XRP/XLM Wallet Manager
 Usa Flask con autenticazione e sessioni sicure
+Versione 1.1.0 - CON MULTILINGUA
 """
 
 import json
@@ -9,19 +10,35 @@ import hashlib
 import secrets
 import io
 import base64
+import os
+import sys
 from datetime import datetime, timedelta
 from pathlib import Path
-from flask import Flask, render_template, request, jsonify, session, redirect, url_for, send_from_directory, send_file
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for, send_from_directory, send_file, after_this_request
 from functools import wraps
 from cli import XRPCLI
 
-# 🔑 QR CODE
+# 🔑 DETERMINA SE SIAMO IN UN BUNDLE PYINSTALLER
+if getattr(sys, 'frozen', False):
+    IS_BUNDLED = True
+else:
+    IS_BUNDLED = False
+
+# 🔑 QR CODE - GESTIONE MIGLIORE
 try:
     import qrcode
     QRCODE_AVAILABLE = True
 except ImportError:
     QRCODE_AVAILABLE = False
-    print("⚠️ qrcode non installato. Installa con: pip install qrcode pillow")
+    print("⚠️ qrcode non installato. Installa con: pip install qrcode")
+
+# 🔑 PIL - GESTIONE MIGLIORE
+try:
+    from PIL import Image
+    PIL_AVAILABLE = True
+except ImportError:
+    PIL_AVAILABLE = False
+    print("⚠️ PIL non installato. Installa con: pip install pillow")
 
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(32)
@@ -31,18 +48,132 @@ app.permanent_session_lifetime = timedelta(hours=1)
 MAX_LOGIN_ATTEMPTS = 5
 LOGIN_COOLDOWN = 300  # secondi
 
+# ============================================================
+# 🔑 SISTEMA DI TRADUZIONE MULTILINGUA
+# ============================================================
+
+class Translator:
+    def __init__(self):
+        self.translations = {}
+        self.default_lang = 'it'
+        self.load_translations()
+    
+    def load_translations(self):
+        """Carica le traduzioni dai file JSON"""
+        locales_dir = Path(__file__).parent / 'locales'
+        if not locales_dir.exists():
+            locales_dir.mkdir(exist_ok=True)
+            print(f"📁 Creata cartella locales: {locales_dir}")
+            print("⚠️ Nessun file di traduzione trovato! Crea i file JSON in locales/")
+            return
+        
+        for lang_file in locales_dir.glob('*.json'):
+            lang = lang_file.stem
+            try:
+                with open(lang_file, 'r', encoding='utf-8') as f:
+                    self.translations[lang] = json.load(f)
+                print(f"✅ Lingua caricata: {lang}")
+            except Exception as e:
+                print(f"⚠️ Errore caricamento lingua {lang}: {e}")
+    
+    def get_current_lang(self):
+        """Ottiene la lingua corrente dalla sessione"""
+        try:
+            return session.get('lang', self.default_lang)
+        except:
+            return self.default_lang
+    
+    def get(self, key, lang=None):
+        """Ottiene una traduzione per chiave"""
+        if lang is None:
+            lang = self.get_current_lang()
+        
+        keys = key.split('.')
+        value = self.translations.get(lang, {})
+        
+        try:
+            for k in keys:
+                if isinstance(value, dict):
+                    value = value.get(k, {})
+                else:
+                    return key
+            if isinstance(value, str):
+                return value
+            return key
+        except:
+            return key
+    
+    def set_language(self, lang):
+        """Cambia la lingua corrente nella sessione"""
+        if lang in self.translations:
+            session['lang'] = lang
+            return True
+        return False
+    
+    def get_available_languages(self):
+        """Restituisce le lingue disponibili"""
+        return list(self.translations.keys())
+
+# Istanza globale del traduttore
+translator = Translator()
+
+# ============================================================
+# 🔑 CONTEXT PROCESSOR PER TEMPLATE
+# ============================================================
+
+@app.context_processor
+def inject_translations():
+    """Inietta le traduzioni nei template"""
+    return {
+        't': translator.get,
+        'lang': translator.get_current_lang(),
+        'languages': translator.get_available_languages()
+    }
+
+# ============================================================
+# 🔑 ROTTA PER CAMBIARE LINGUA
+# ============================================================
+
+@app.route('/set_language/<lang>')
+def set_language(lang):
+    """Cambia la lingua dell'interfaccia"""
+    if translator.set_language(lang):
+        print(f"🌍 Lingua cambiata a {lang.upper()}")
+    return redirect(request.referrer or '/')
+
+# ============================================================
+# 🔑 API PER TRADUZIONI (per JavaScript)
+# ============================================================
+
+@app.route('/api/translations')
+def api_translations():
+    """Restituisce le traduzioni per il JavaScript"""
+    lang = translator.get_current_lang()
+    return jsonify(translator.translations.get(lang, {}))
+
+# ============================================================
+# 🔑 CLASSE SecureXRPManager
+# ============================================================
+
 class SecureXRPManager:
     def __init__(self):
         self.cli = XRPCLI()
         self._load_config()
         
     def _load_config(self):
-        """Carica la configurazione web"""
-        config_file = Path("web_config.json")
+        """Carica la configurazione web - supporto per bundle standalone"""
+        if IS_BUNDLED:
+            config_dir = Path(os.path.expanduser("~/.xrpwallet"))
+            config_dir.mkdir(parents=True, exist_ok=True)
+            config_file = config_dir / "web_config.json"
+        else:
+            config_file = Path("web_config.json")
+        
+        self.config_file = config_file
+        
         if config_file.exists():
             with open(config_file) as f:
                 self.config = json.load(f)
-            # 🔑 SE USERS È VUOTO, AGGIUNGI ADMIN
             if not self.config.get("users") or len(self.config["users"]) == 0:
                 self.config["users"] = {}
                 self.add_user("admin", "admin123")
@@ -60,7 +191,7 @@ class SecureXRPManager:
             print("🔐 Utente admin creato (password: admin123)")
             
     def _save_config(self):
-        with open("web_config.json", "w") as f:
+        with open(self.config_file, "w") as f:
             json.dump(self.config, f, indent=2)
             
     def verify_password(self, password, hash_val):
@@ -83,6 +214,22 @@ class SecureXRPManager:
         self._save_config()
         return True, "Utente creato"
 
+    def change_password(self, username, old_password, new_password):
+        """Cambia la password di un utente"""
+        if username not in self.config["users"]:
+            return False, "Utente non trovato"
+        
+        user = self.config["users"][username]
+        
+        if not self.verify_password(old_password, user["password"]):
+            return False, "Password attuale non corretta"
+        
+        user["password"] = self.hash_password(new_password)
+        user["password_changed_at"] = datetime.now().isoformat()
+        self._save_config()
+        
+        return True, "Password cambiata con successo"
+
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -92,6 +239,10 @@ def login_required(f):
     return decorated_function
 
 xrp_manager = SecureXRPManager()
+
+# ============================================================
+# 🔑 ROTTE PRINCIPALI
+# ============================================================
 
 @app.route('/')
 @login_required
@@ -148,10 +299,169 @@ def login():
 def favicon():
     return send_from_directory('.', 'favicon.ico', mimetype='image/vnd.microsoft.icon')
 
+# ============================================================
+# 🔑 SERVI LE ICONE
+# ============================================================
+
+@app.route('/icons/<path:filename>')
+def serve_icon(filename):
+    """Serve le icone dalla cartella icons"""
+    try:
+        # 🔑 PERCORSO CORRETTO PER BUNDLE E SVILUPPO
+        if IS_BUNDLED:
+            icons_dir = Path(sys._MEIPASS) / 'icons'
+        else:
+            icons_dir = Path(__file__).parent / 'icons'
+        
+        file_path = icons_dir / filename
+        if not file_path.exists():
+            print(f"⚠️ Icona non trovata: {filename}")
+            return jsonify({"error": "Icon not found"}), 404
+        
+        # 🔑 DETERMINA IL TIPO MIME
+        ext = filename.split('.')[-1].lower()
+        mimetypes = {
+            'png': 'image/png',
+            'ico': 'image/vnd.microsoft.icon',
+            'svg': 'image/svg+xml',
+            'jpg': 'image/jpeg',
+            'jpeg': 'image/jpeg',
+            'gif': 'image/gif',
+            'webp': 'image/webp'
+        }
+        mimetype = mimetypes.get(ext, 'application/octet-stream')
+        
+        return send_from_directory(icons_dir, filename, mimetype=mimetype)
+    except Exception as e:
+        print(f"⚠️ Errore servendo icona {filename}: {e}")
+        return jsonify({"error": str(e)}), 404
+
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect(url_for('login'))
+
+# ============================================================
+# 🔑 API QR CODE - FIX PER RICEVI
+# ============================================================
+
+@app.route('/api/wallet/qrcode')
+@login_required
+def api_qrcode():
+    """Genera un QR code per l'indirizzo del wallet corrente"""
+    try:
+        if not QRCODE_AVAILABLE:
+            return jsonify({"error": "Libreria qrcode non installata. Installa: pip install qrcode pillow"}), 500
+            
+        if not PIL_AVAILABLE:
+            return jsonify({"error": "Libreria PIL non installata. Installa: pip install pillow"}), 500
+            
+        if not xrp_manager.cli.manager.is_loaded():
+            return jsonify({"error": "Nessun wallet caricato. Crea o importa un wallet."}), 400
+        
+        address = xrp_manager.cli.manager.get_address()
+        crypto = xrp_manager.cli._crypto
+        network = xrp_manager.cli._network
+        wallet_name = xrp_manager.cli._get_active_wallet_name()
+        
+        # 🔑 GENERA QR CODE
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=8,
+            border=2,
+        )
+        qr.add_data(address)
+        qr.make(fit=True)
+        
+        img = qr.make_image(fill_color="#00d4ff", back_color="#1a1a2e")
+        
+        # 🔑 SALVA IN MEMORY
+        buffered = io.BytesIO()
+        img.save(buffered, format="PNG")
+        buffered.seek(0)
+        img_str = base64.b64encode(buffered.getvalue()).decode()
+        
+        # 🔑 OTTIENI BALANCE
+        try:
+            balance = xrp_manager.cli.manager.get_balance()
+        except:
+            balance = 0.0
+        
+        return jsonify({
+            "success": True,
+            "address": address,
+            "crypto": crypto,
+            "network": network,
+            "balance": balance,
+            "wallet_name": wallet_name,
+            "qrcode": f"data:image/png;base64,{img_str}"
+        })
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/wallet/qrcode_download')
+@login_required
+def api_qrcode_download():
+    """Scarica il QR code come PNG"""
+    try:
+        if not QRCODE_AVAILABLE:
+            return jsonify({"error": "Libreria qrcode non installata"}), 500
+            
+        if not PIL_AVAILABLE:
+            return jsonify({"error": "Libreria PIL non installata"}), 500
+            
+        if not xrp_manager.cli.manager.is_loaded():
+            return jsonify({"error": "Nessun wallet caricato"}), 400
+        
+        address = xrp_manager.cli.manager.get_address()
+        
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=10,
+            border=2,
+        )
+        qr.add_data(address)
+        qr.make(fit=True)
+        
+        img = qr.make_image(fill_color="#00d4ff", back_color="#1a1a2e")
+        
+        buffered = io.BytesIO()
+        img.save(buffered, format="PNG")
+        buffered.seek(0)
+        
+        return send_file(
+            buffered, 
+            mimetype='image/png', 
+            as_attachment=True, 
+            download_name=f'xrpwallet_qrcode_{address[:8]}.png'
+        )
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/wallet/address')
+@login_required
+def api_wallet_address():
+    """Restituisce solo l'indirizzo per la copia"""
+    try:
+        if not xrp_manager.cli.manager.is_loaded():
+            return jsonify({"error": "Nessun wallet caricato"}), 400
+        
+        address = xrp_manager.cli.manager.get_address()
+        crypto = xrp_manager.cli._crypto
+        
+        return jsonify({
+            "success": True,
+            "address": address,
+            "crypto": crypto
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 # ============================================================
 # 🔑 API WALLET
@@ -162,14 +472,17 @@ def logout():
 def api_wallet_info():
     try:
         if not xrp_manager.cli.manager.is_loaded():
-            return jsonify({"error": "Nessun wallet caricato"}), 400
+            return jsonify({"error": "Nessun wallet caricato", "address": None, "balance": 0, "crypto": "XRP", "network": "testnet"}), 200
             
         info = xrp_manager.cli.manager.get_seed_info()
         address = xrp_manager.cli.manager.get_address()
         crypto = xrp_manager.cli._crypto
         network = xrp_manager.cli._network
         
-        balance = xrp_manager.cli.manager.get_balance()
+        try:
+            balance = xrp_manager.cli.manager.get_balance()
+        except:
+            balance = 0.0
         
         return jsonify({
             "address": address,
@@ -258,7 +571,6 @@ def api_history():
             except:
                 pass
             
-            # 🔑 GESTIONE IMPORTI - TRONCA TOKEN LUNGHI
             amount = tx.get("Amount", tx.get("DeliverMax", "0"))
             if isinstance(amount, dict):
                 token_value = amount.get('value', '0')
@@ -268,7 +580,6 @@ def api_history():
                     amount_str = f"{val_float:.6f}".rstrip('0').rstrip('.')
                     if not amount_str or amount_str == '0':
                         amount_str = "0"
-                    # 🔑 TRONCA IL SIMBOLO SE È ESADECIMALE LUNGO
                     if len(token_currency) > 8:
                         token_currency = token_currency[:8]
                     amount_str += f" {token_currency}"
@@ -307,7 +618,6 @@ def api_history():
                 direction = "ALTRO"
                 from_to = f"{sender} → {destination}"
             
-            # 🔑 DECODIFICA MEMO
             memo_text = ""
             memos = tx.get("Memos", [])
             if memos:
@@ -341,7 +651,10 @@ def api_history():
                 "memo": memo_text
             })
         
-        balance = xrp_manager.cli.manager.get_balance()
+        try:
+            balance = xrp_manager.cli.manager.get_balance()
+        except:
+            balance = 0.0
         
         return jsonify({
             "transactions": tx_list,
@@ -359,7 +672,7 @@ def api_history():
         return jsonify({"error": str(e), "transactions": [], "balance": 0}), 500
 
 def api_history_xlm(address):
-    """Storico XLM via Horizon con importi corretti usando /payments"""
+    """Storico XLM"""
     try:
         import requests
         
@@ -368,7 +681,6 @@ def api_history_xlm(address):
         else:
             horizon_url = "https://horizon-testnet.stellar.org"
         
-        # 🔑 USA /payments CHE FUNZIONA
         url = f"{horizon_url}/accounts/{address}/payments?limit=10&order=desc"
         response = requests.get(url, timeout=30)
         data = response.json()
@@ -383,7 +695,6 @@ def api_history_xlm(address):
             created_at = payment.get('created_at', '')
             date_str = created_at.replace('T', ' ').replace('Z', '')[:19] if created_at else ''
             
-            # 🔑 OTTIENI IL TIPO E L'IMPORTO DIRETTAMENTE DA PAYMENT
             op_type = payment.get('type', 'unknown')
             amount_str = ""
             from_to = ""
@@ -409,8 +720,6 @@ def api_history_xlm(address):
                 
                 amount_str = f"{amount:.6f} {asset_code}"
                 
-                # 🔑 MEMO VIENE DALLA TRANSAZIONE ASSOCIATA
-                # Proviamo a prenderlo dai _links
                 tx_link = payment.get('_links', {}).get('transaction', {}).get('href', '')
                 if tx_link:
                     try:
@@ -471,7 +780,6 @@ def api_history_xlm(address):
                 amount_str = ""
                 direction = op_type[:14]
             
-            # 🔑 FEE (stimata, Horizon non la dà nei payments)
             fee_str = "0.0000100 XLM"
             
             tx_list.append({
@@ -484,7 +792,10 @@ def api_history_xlm(address):
                 "memo": memo_text
             })
         
-        balance = xrp_manager.cli.manager.get_balance()
+        try:
+            balance = xrp_manager.cli.manager.get_balance()
+        except:
+            balance = 0.0
         
         return jsonify({
             "transactions": tx_list,
@@ -745,87 +1056,7 @@ def api_change_network():
         return jsonify({"error": str(e)}), 500
 
 # ============================================================
-# 🔑 API QR CODE
-# ============================================================
-
-@app.route('/api/wallet/qrcode')
-@login_required
-def api_qrcode():
-    """Genera un QR code per l'indirizzo del wallet corrente"""
-    try:
-        if not QRCODE_AVAILABLE:
-            return jsonify({"error": "Libreria qrcode non installata. pip install qrcode pillow"}), 500
-            
-        if not xrp_manager.cli.manager.is_loaded():
-            return jsonify({"error": "Nessun wallet caricato"}), 400
-        
-        address = xrp_manager.cli.manager.get_address()
-        crypto = xrp_manager.cli._crypto
-        network = xrp_manager.cli._network
-        
-        qr = qrcode.QRCode(
-            version=1,
-            error_correction=qrcode.constants.ERROR_CORRECT_L,
-            box_size=8,
-            border=2,
-        )
-        qr.add_data(address)
-        qr.make(fit=True)
-        
-        img = qr.make_image(fill_color="#00d4ff", back_color="#1a1a2e")
-        
-        buffered = io.BytesIO()
-        img.save(buffered, format="PNG")
-        img_str = base64.b64encode(buffered.getvalue()).decode()
-        
-        balance = xrp_manager.cli.manager.get_balance()
-        
-        return jsonify({
-            "success": True,
-            "address": address,
-            "crypto": crypto,
-            "network": network,
-            "balance": balance,
-            "wallet_name": xrp_manager.cli._get_active_wallet_name(),
-            "qrcode": f"data:image/png;base64,{img_str}"
-        })
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/api/wallet/qrcode_download')
-@login_required
-def api_qrcode_download():
-    """Scarica il QR code come PNG"""
-    try:
-        if not QRCODE_AVAILABLE:
-            return jsonify({"error": "Libreria qrcode non installata"}), 500
-            
-        if not xrp_manager.cli.manager.is_loaded():
-            return jsonify({"error": "Nessun wallet caricato"}), 400
-        
-        address = xrp_manager.cli.manager.get_address()
-        
-        qr = qrcode.QRCode(
-            version=1,
-            error_correction=qrcode.constants.ERROR_CORRECT_L,
-            box_size=10,
-            border=2,
-        )
-        qr.add_data(address)
-        qr.make(fit=True)
-        
-        img = qr.make_image(fill_color="#00d4ff", back_color="#1a1a2e")
-        
-        buffered = io.BytesIO()
-        img.save(buffered, format="PNG")
-        buffered.seek(0)
-        
-        return send_file(buffered, mimetype='image/png', as_attachment=True, download_name='wallet_qrcode.png')
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-# ============================================================
-# 🔑 API CONTATTI (con crypto e network)
+# 🔑 API CONTATTI
 # ============================================================
 
 @app.route('/api/contacts/list')
@@ -923,15 +1154,14 @@ def api_contacts_all():
 @app.route('/api/donate/info')
 @login_required
 def api_donate_info():
-    """Restituisce gli indirizzi per le donazioni"""
     return jsonify({
         "xrp": {
-            "mainnet": "rBKbetm51vuQQfg4Yo8fvweRya7gedcr9J",      # 🔑 METTI IL TUO INDIRIZZO XRP MAINNET
-            "testnet": "r93Yu6oRvwahF264kpAMtqVk5WGa12Xpxb"       # 🔑 METTI IL TUO INDIRIZZO XRP TESTNET
+            "mainnet": "rBKbetm51vuQQfg4Yo8fvweRya7gedcr9J",
+            "testnet": "r93Yu6oRvwahF264kpAMtqVk5WGa12Xpxb"
         },
         "xlm": {
-            "mainnet": "GAHIVF4DGY6YAB42P6OTXYNQWROIPHJ2HGE4WLWNMYPPFBDYF3QI2ZNW",  # 🔑 METTI IL TUO INDIRIZZO XLM MAINNET
-            "testnet": "GBZ6353S4ZEGQMYZVXD7N74DKFDJNVRTXY5EWBMXIVBRRY2P4AEW5RAI"   # 🔑 METTI IL TUO INDIRIZZO XLM TESTNET
+            "mainnet": "GAHIVF4DGY6YAB42P6OTXYNQWROIPHJ2HGE4WLWNMYPPFBDYF3QI2ZNW",
+            "testnet": "GBZ6353S4ZEGQMYZVXD7N74DKFDJNVRTXY5EWBMXIVBRRY2P4AEW5RAI"
         },
         "suggested": {
             "xrp": 1.0,
@@ -940,8 +1170,46 @@ def api_donate_info():
         "message": "Supporta lo sviluppo di XRPWallet! ❤️"
     })
 
+@app.route('/api/user/change_password', methods=['POST'])
+@login_required
+def api_change_password():
+    try:
+        data = request.get_json()
+        old_password = data.get('old_password', '').strip()
+        new_password = data.get('new_password', '').strip()
+        confirm_password = data.get('confirm_password', '').strip()
+        
+        if not old_password:
+            return jsonify({"success": False, "error": "Inserisci la password attuale"}), 400
+        
+        if not new_password:
+            return jsonify({"success": False, "error": "Inserisci la nuova password"}), 400
+        
+        if len(new_password) < 6:
+            return jsonify({"success": False, "error": "La password deve essere di almeno 6 caratteri"}), 400
+        
+        if new_password != confirm_password:
+            return jsonify({"success": False, "error": "Le password non coincidono"}), 400
+        
+        if new_password == old_password:
+            return jsonify({"success": False, "error": "La nuova password deve essere diversa da quella attuale"}), 400
+        
+        username = session.get('username')
+        if not username:
+            return jsonify({"success": False, "error": "Sessione non valida"}), 401
+        
+        success, message = xrp_manager.change_password(username, old_password, new_password)
+        
+        if success:
+            return jsonify({"success": True, "message": message})
+        else:
+            return jsonify({"success": False, "error": message}), 400
+            
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
 
-if __name__ == "__main__":
+def main():
+    """Avvia il server web"""
     if "admin" not in xrp_manager.config["users"]:
         print("🔐 Creazione utente admin...")
         xrp_manager.add_user("admin", "admin123")
@@ -949,3 +1217,6 @@ if __name__ == "__main__":
     
     print("🌐 Server web in esecuzione su http://localhost:5000")
     app.run(host='0.0.0.0', port=5000, debug=False)
+
+if __name__ == "__main__":
+    main()
