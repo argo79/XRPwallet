@@ -1,4 +1,4 @@
-# 💰 XRPWallet - XRP/XLM Wallet Manager
+# XRPWallet - XRP/XLM Wallet Manager
 
 > A lightweight, multi-wallet manager for **XRP Ledger (XRPL)** and **Stellar (XLM)** featuring **CLI**, **Terminal UI**, and **Web Interface**.
 
