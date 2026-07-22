@@ -29,7 +29,7 @@
   - Testnet
 
 - ⚡ Ultra-low transaction fees
-  - XRP: ~0.000001 XRP
+  - XRP: ~0.00001 XRP
   - XLM: Network minimum fees
 
 ---
@@ -572,14 +572,14 @@ Output di esempio:
 
 | Network     |    Base Fee | Typical Transaction Fee |
 | ----------- | ----------: | ----------------------: |
-| XRP Mainnet |    10 drops |        **0.000001 XRP** |
-| XRP Testnet |    10 drops |        **0.000001 XRP** |
+| XRP Mainnet |    10 drops |        **0.00001 XRP** |
+| XRP Testnet |    10 drops |        **0.00001 XRP** |
 | XLM Mainnet | 100 stroops |         **0.00001 XLM** |
 | XLM Testnet | 100 stroops |         **0.00001 XLM** |
 
 > 💡 **Note**
 >
-> XRP transaction fees are among the lowest of any major blockchain, typically around **0.000001 XRP**.
+> XRP transaction fees are among the lowest of any major blockchain, typically around **0.00001 XRP**.
 
 ---
 
@@ -602,8 +602,8 @@ Example output:
 ┌────┬─────────────────────┬────────────┬──────────────────┬────────────┬────────────────────────────────────────────┐
 │ #  │ Date & Time         │ Type       │ Amount           │ Fee        │ From / To                                  │
 ├────┼─────────────────────┼────────────┼──────────────────┼────────────┼────────────────────────────────────────────┤
-│ 1  │ 2026-07-21 14:23:57 │ RECEIVED   │ 10.000000 XRP    │ 0.000001   │ From: rLVB5EAE62zDJvLTm46aCNW3rytsjVKtrY    │
-│ 2  │ 2026-07-21 10:15:32 │ SENT       │ 5.000000 XRP     │ 0.000001   │ To:   rBKbetm51vuQQfg4Yo8fvweRya7gedcr9J    │
+│ 1  │ 2026-07-21 14:23:57 │ RECEIVED   │ 10.000000 XRP    │ 0.00001    │ From: rLVB5EAE62zDJvLTm46aCNW3rytsjVKtrY    │
+│ 2  │ 2026-07-21 10:15:32 │ SENT       │ 5.000000 XRP     │ 0.00001    │ To:   rBKbetm51vuQQfg4Yo8fvweRya7gedcr9J    │
 └────┴─────────────────────┴────────────┴──────────────────┴────────────┴────────────────────────────────────────────┘
 ```
 
