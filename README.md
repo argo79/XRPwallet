@@ -175,19 +175,28 @@ Open any wallet or transaction directly from the application.
 
 ## CLI
 
-![CLI](screenshots/cli.png)
+![CLI]
+<p align="center">
+  <img src="jpg/cli.jpg" width="900">
+</p>
 
 ---
 
 ## TUI
 
 ![TUI]
+<p align="center">
+  <img src="jpg/tui.jpg" width="900">
+</p>
 
 ---
 
 ## Web Interface
 
-![Web](screenshots/web.png)
+![Web]
+<p align="center">
+  <img src="jpg/web2.jpg" width="900">
+</p>
 
 ---
 
@@ -600,6 +609,11 @@ Example output:
 └────┴─────────────────────┴────────────┴──────────────────┴────────────┴────────────────────────────────────────────┘
 ```
 
+<p align="center">
+  <img src="jpg/web2.jpg" width="900">
+</p>
+
+
 ---
 
 # 4️⃣ Networks
@@ -695,6 +709,13 @@ Password: admin123
 > ⚠️ **Security Notice**
 >
 > Change the default administrator password after your first login.
+
+<p align="center">
+  <img src="jpg/web1.jpg" width="900">
+</p>
+
+---
+
 # 6️⃣ Address Book
 
 ## ➕ Add a Contact
@@ -706,6 +727,10 @@ Password: admin123
 
 ./xrpwallet contact-add mario rLVB5EAE62zDJvLTm46aCNW3rytsjVKtrY cliente 0 "XRP Mainnet"
 ```
+
+<p align="center">
+  <img src="jpg/web4.jpg" width="900">
+</p>
 
 ---
 
@@ -751,6 +776,11 @@ Available features:
 * ✅ Direct blockchain explorer link
 * ✅ Display wallet balance
 * ✅ Display current network
+
+
+<p align="center">
+  <img src="jpg/web3.jpg" width="900">
+</p>
 
 ---
 
