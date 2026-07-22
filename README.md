@@ -175,7 +175,6 @@ Open any wallet or transaction directly from the application.
 
 ## CLI
 
-![CLI]
 <p align="center">
   <img src="jpg/cli.jpg" width="900">
 </p>
@@ -184,7 +183,6 @@ Open any wallet or transaction directly from the application.
 
 ## TUI
 
-![TUI]
 <p align="center">
   <img src="jpg/tui.jpg" width="900">
 </p>
@@ -193,7 +191,6 @@ Open any wallet or transaction directly from the application.
 
 ## Web Interface
 
-![Web]
 <p align="center">
   <img src="jpg/web2.jpg" width="900">
 </p>
