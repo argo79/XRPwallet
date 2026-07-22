@@ -1,552 +1,989 @@
-💰 XRPWallet - XRP/XLM Wallet Manager
+# 💰 XRPWallet - XRP/XLM Wallet Manager
 
-https://img.shields.io/github/release/argo79/XRPwallet.svg
-https://img.shields.io/badge/License-MIT-yellow.svg
-https://img.shields.io/badge/python-3.8+-blue.svg
-https://img.shields.io/badge/platform-Linux%2520%257C%2520Windows%2520%257C%2520Mac-lightgrey
+> A lightweight, multi-wallet manager for **XRP Ledger (XRPL)** and **Stellar (XLM)** featuring **CLI**, **Terminal UI**, and **Web Interface**.
 
-    Il wallet manager definitivo per XRP e XLM con fee minime di 0.000001 XRP!
+![Release](https://img.shields.io/github/release/argo79/XRPwallet.svg)
+![License](https://img.shields.io/badge/License-MIT-yellow.svg)
+![Python](https://img.shields.io/badge/python-3.8+-blue.svg)
+![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Windows%20%7C%20macOS-lightgrey.svg)
 
-📸 Screenshot
-CLI	TUI	Web
-https://screenshots/cli.png	https://screenshots/tui.png	https://screenshots/web.png
-✨ Caratteristiche Principali
+---
 
-🎯 Supporto Multi-Crypto
+# 🚀 Features
 
-    ✅ XRP (Ripple) - Mainnet, Testnet, Devnet
+## 💎 Multi-Currency Support
 
-    ✅ XLM (Stellar) - Mainnet, Testnet
+- ✅ XRP Ledger (XRPL)
+  - Mainnet
+  - Testnet
+  - Devnet
 
-    ✅ Fee minime: solo 0.000001 XRP per transazione!
+- ✅ Stellar (XLM)
+  - Mainnet
+  - Testnet
 
-🖥️ Tre Interfacce
+- ⚡ Ultra-low transaction fees
+  - XRP: ~0.000001 XRP
+  - XLM: Network minimum fees
 
-    CLI - Command Line Interface per power users
+---
 
-    TUI - Terminal User Interface con colori e navigazione
+# 🖥️ Three User Interfaces
 
-    Web - Interfaccia web con Flask, QR Code e rubrica
+Choose the interface you prefer.
 
-🔐 Gestione Wallet Avanzata
+### 🖥 CLI
 
-    ✅ Multi-wallet (salva e gestisci infiniti wallet)
+Fast command-line interface for scripting and advanced users.
 
-    ✅ Supporto seed BIP39 (12 o 24 parole)
+### 🎨 TUI
 
-    ✅ Supporto seed XRP (formato s...)
+Colorful terminal interface with menus and keyboard navigation.
 
-    ✅ Supporto seed Stellar (formato S...)
+### 🌐 Web
 
-    ✅ Supporto numeri Xaman (8 numeri da 6 cifre)
+Modern Flask-based interface featuring:
 
-    ✅ Supporto private key (64 caratteri hex)
+- QR Codes
+- Address book
+- Wallet overview
+- Transaction history
+- Mobile-friendly layout
 
-    ✅ Derivazione indirizzi con keyword personalizzate
+---
 
-💸 Transazioni
+# 🔐 Wallet Management
 
-    ✅ Invio XRP e XLM con fee minime
+Manage as many wallets as you like.
 
-    ✅ Storico transazioni completo
+Supported wallet types:
 
-    ✅ Saldo in tempo reale
+- ✅ BIP39 Mnemonic (12 words)
+- ✅ BIP39 Mnemonic (24 words)
+- ✅ XRP Family Seed (`s...`)
+- ✅ Stellar Secret Key (`S...`)
+- ✅ Xaman numeric backup
+- ✅ Raw Private Keys (HEX)
 
-    ✅ Fee visualizzate
+Features:
 
-    ✅ Supporto memo (XLM)
+- Multi-wallet management
+- Import existing wallets
+- Create new wallets
+- Rename wallets
+- Delete wallets
+- Active wallet selection
+- Automatic address derivation
 
-    ✅ Supporto token XRP (XPM, USD, EUR, ecc.)
+---
 
-📒 Rubrica Contatti
+# 💸 Transactions
 
-    ✅ Aggiungi contatti con nome
+### XRP
 
-    ✅ Cerca contatti
+- Send XRP
+- Receive XRP
+- Network fee display
+- Real-time balance
+- Transaction history
 
-    ✅ Indirizzi con nome descrittivo
+### Stellar
 
-    ✅ Supporto crypto e network
+- Send XLM
+- Receive XLM
+- Memo support
+- Balance
+- Transaction history
 
-    ✅ Elimina e modifica contatti
+---
 
-📱 Funzionalità Avanzate
+# 🪙 XRP Issued Tokens
 
-    ✅ QR Code per ricevere pagamenti
+Support for XRPL issued assets.
 
-    ✅ Copia indirizzo negli appunti
+Examples:
 
-    ✅ Esploratore integrato (XRPScan, Stellar Expert)
+- USD
+- EUR
+- RLUSD
+- XPM
+- Custom Tokens
 
-    ✅ Testnet faucet (XRP e XLM)
+Features:
 
-    ✅ Riconoscimento automatico token
+- Automatic token detection
+- Trust Line support
+- Token balances
+- Token transfers
 
-📦 Installazione
+---
 
-Via pip (consigliato per sviluppatori)
-bash
+# 📒 Address Book
 
+Built-in contact manager.
+
+- Add contacts
+- Edit contacts
+- Delete contacts
+- Search contacts
+- Human-readable names
+- Network identification
+- Cryptocurrency identification
+
+Example:
+
+| Name | Network | Address |
+|------|---------|----------|
+| Alice | XRP | r... |
+| Bob | XLM | G... |
+
+---
+
+# 📱 Extra Features
+
+- ✅ QR Code generation
+- ✅ Copy address to clipboard
+- ✅ Integrated blockchain explorers
+- ✅ XRP Testnet Faucet
+- ✅ Stellar Testnet Friendbot
+- ✅ Automatic network recognition
+- ✅ Automatic address validation
+
+---
+
+# 🌍 Supported Explorers
+
+### XRP
+
+- XRPScan
+
+### Stellar
+
+- Stellar Expert
+
+Open any wallet or transaction directly from the application.
+
+---
+
+# 📸 Screenshots
+
+## CLI
+
+![CLI](screenshots/cli.png)
+
+---
+
+## TUI
+
+![TUI](screenshots/tui.png)
+
+---
+
+## Web Interface
+
+![Web](screenshots/web.png)
+
+---
+
+# 📦 Installation
+
+```bash
+git clone https://github.com/argo79/XRPwallet.git
+
+cd XRPwallet
+
+pip install -r requirements.txt
+```
+
+---
+
+# ▶️ Run
+
+CLI
+
+```bash
+python cli.py
+```
+
+Terminal UI
+
+```bash
+python tui.py
+```
+
+Web Interface
+
+```bash
+python web.py
+```
+
+---
+
+# 📁 Project Structure
+
+```
+XRPwallet/
+│
+├── cli.py
+├── tui.py
+├── web.py
+├── wallet_manager.py
+├── wallets/
+├── screenshots/
+├── requirements.txt
+└── README.md
+```
+
+---
+
+# 🎯 Roadmap
+
+- [ ] XRP Trust Lines
+- [ ] RLUSD support
+- [ ] Token issuer creation
+- [ ] DEX trading
+- [ ] Escrow transactions
+- [ ] Payment Channels
+- [ ] Multisignature wallets
+- [ ] Hardware wallet support
+- [ ] Monero (XMR)
+- [ ] Bitcoin (BTC)
+- [ ] Ethereum (ETH)
+- [ ] Solana (SOL)
+
+---
+
+# 🤝 Contributing
+
+Contributions, issues and feature requests are welcome.
+
+Feel free to open a Pull Request.
+
+---
+
+# 📄 License
+
+Released under the **MIT License**.
+
+---
+
+# ⭐ Support
+
+If you like this project, consider giving it a **⭐ Star** on GitHub.
+
+# 📦 Installazione
+
+## Via pip *(consigliato per sviluppatori)*
+
+```bash
 pip install xrpwallet
+```
 
-Linux - Eseguibile Singolo
-bash
+---
 
+## 🐧 Linux - Eseguibile Standalone
+
+```bash
 wget https://github.com/argo79/XRPwallet/releases/download/v1.0.0/xrpwallet-linux
+
 chmod +x xrpwallet-linux
+
 ./xrpwallet-linux
+```
 
-Windows - Eseguibile
-Scarica xrpwallet-windows.exe dalla pagina delle release e avvia.
+---
 
-MacOS - Eseguibile
-bash
+## 🪟 Windows - Eseguibile
 
+Scarica **`xrpwallet-windows.exe`** dalla pagina delle **Releases** e avvialo.
+
+---
+
+## 🍎 macOS - Eseguibile
+
+```bash
 chmod +x xrpwallet-mac
+
 ./xrpwallet-mac
+```
 
-Docker
-bash
+---
 
+## 🐳 Docker
+
+```bash
 docker run -it -p 5000:5000 argo79/xrpwallet
+```
 
-🚀 Guida Rapida
+---
 
-Creare un Nuovo Wallet
-bash
+# 🚀 Guida Rapida
 
+## 🆕 Creare un nuovo Wallet
+
+```bash
 ./xrpwallet
+```
 
-Scegli "Crea nuovo wallet", inserisci un nome (es. "personale"), scegli XRP o XLM, scegli Mainnet o Testnet, scegli "Crea nuovo (genera 24 parole BIP39)", inserisci passphrase (opzionale).
+Successivamente:
 
-Importare un Wallet Esistente
-bash
+1. Seleziona **Crea nuovo wallet**
+2. Inserisci un nome (es. `personale`)
+3. Scegli la criptovaluta (**XRP** oppure **XLM**)
+4. Scegli la rete (**Mainnet**, **Testnet** o **Devnet**)
+5. Seleziona **Crea nuovo (genera 24 parole BIP39)**
+6. Inserisci una passphrase *(opzionale)*
 
+---
+
+## 📥 Importare un Wallet Esistente
+
+```bash
 ./xrpwallet
+```
 
-Scegli "Importa da seed" e inserisci il seed: 12/24 parole BIP39, Seed XRP (s...), Seed Stellar (S...), 8x6 numeri Xaman (es: 123456 234567 ...), o Private key (64 hex).
-📚 Guida Dettagliata
-1. Creazione Wallet
+Scegli **Importa da Seed** e inserisci uno dei formati supportati:
 
-🆕 Creazione da Zero (BIP39 24 Parole)
-bash
+* ✅ Seed BIP39 (12 parole)
+* ✅ Seed BIP39 (24 parole)
+* ✅ Seed XRP (`s...`)
+* ✅ Seed Stellar (`S...`)
+* ✅ Numeri Xaman (8 gruppi da 6 cifre)
+* ✅ Private Key (64 caratteri esadecimali)
 
+---
+
+# 📚 Guida Dettagliata
+
+# 1️⃣ Creazione Wallet
+
+## 🆕 Creazione da Zero (BIP39 - 24 parole)
+
+```bash
 ./xrpwallet wallet personale
+```
 
-Passaggi:
+### Procedura
 
-    Scegli la criptovaluta (XRP o XLM)
+1. Scegli la criptovaluta (**XRP** o **XLM**)
+2. Scegli la rete (**Mainnet**, **Testnet** o **Devnet**)
+3. Seleziona **Crea nuovo (24 parole BIP39)**
+4. Inserisci una passphrase *(opzionale)*
+5. Conserva con cura le 24 parole generate.
 
-    Scegli la rete (Mainnet/Testnet/Devnet)
+> ⚠️ **IMPORTANTE**
+>
+> Le 24 parole sono l'unico metodo per recuperare il wallet.
+> Conservale offline e in un luogo sicuro.
 
-    Scegli "Crea nuovo (genera 24 parole BIP39)"
+---
 
-    Inserisci passphrase (opzionale, per maggiore sicurezza)
+## 🔢 Importare un Wallet Xaman (Secret Numbers)
 
-    SALVA LE 24 PAROLE! Sono il tuo seed.
+Xaman (ex XUMM) utilizza **8 gruppi di 6 cifre**.
 
-⚠️ ATTENZIONE: Le 24 parole sono l'unico modo per recuperare il wallet. Conservale in un luogo sicuro!
-
-🔢 Importa da Numeri Xaman (8x6)
-Xaman (ex XUMM) usa 8 numeri da 6 cifre per il seed.
-bash
-
+```bash
 ./xrpwallet wallet xaman
+```
 
-Inserisci: A:123456 B:234567 C:345678 D:456789 E:567890 F:678901 G:789012 H:890123
+Esempio:
 
-Formati accettati:
+```text
+A:123456
+B:234567
+C:345678
+D:456789
+E:567890
+F:678901
+G:789012
+H:890123
+```
 
-    A:123456 B:234567 C:345678 D:456789 E:567890 F:678901 G:789012 H:890123
+### Formati supportati
 
-    123456 234567 345678 456789 567890 678901 789012 890123
+Con lettere:
 
-    Con o senza lettere (A-H)
+```text
+A:123456 B:234567 C:345678 D:456789 E:567890 F:678901 G:789012 H:890123
+```
 
-📝 Importa da Seed BIP39 (12/24 Parole)
-bash
+Solo numeri:
 
+```text
+123456 234567 345678 456789 567890 678901 789012 890123
+```
+
+Sono accettati sia i prefissi **A-H** sia la sola sequenza numerica.
+
+---
+
+## 📝 Importare un Seed BIP39
+
+```bash
 ./xrpwallet wallet mywallet
+```
 
-Inserisci le 12/24 parole separate da spazio, inserisci passphrase (se presente).
+Inserisci:
 
-🔑 Importa da Seed XRP
-bash
+* 12 parole
+* oppure 24 parole
 
+separate da spazio.
+
+Se il wallet utilizza una **passphrase BIP39**, inseriscila quando richiesta.
+
+---
+
+## 🔑 Importare un Seed XRP
+
+```bash
 ./xrpwallet wallet mywallet
+```
 
-Inserisci il seed XRP (inizia con s...). Esempio: sEdTVyS93eSa1P4GcWjMq4V
+Inserisci un seed XRP nel formato:
 
-🌟 Importa da Seed Stellar
-bash
+```text
+sEdTVyS93eSa1P4GcWjMq4V
+```
 
+---
+
+## 🌟 Importare un Seed Stellar
+
+```bash
 ./xrpwallet wallet mywallet
+```
 
-Inserisci il seed Stellar (inizia con S...). Esempio: SDV3WVDKMYCGQLMVZBG6ONQGXVSQYPPFDVQZKSR4NN33PUKAOBYZQN6O
+Inserisci un secret Stellar:
 
-🔐 Importa da Private Key
-bash
+```text
+SDV3WVDKMYCGQLMVZBG6ONQGXVSQYPPFDVQZKSR4NN33PUKAOBYZQN6O
+```
 
+---
+
+## 🔐 Importare una Private Key
+
+```bash
 ./xrpwallet wallet mywallet
+```
 
-Inserisci la private key (64 caratteri hex). Esempio: 2d2bb3b3ae2012af879dfde7a8190d465f50beb56a207ca37e8871c91a8150b4
-2. Gestione Wallet
+Inserisci una private key esadecimale da **64 caratteri**.
 
-📂 Cambiare Wallet
-bash
+Esempio:
 
+```text
+2d2bb3b3ae2012af879dfde7a8190d465f50beb56a207ca37e8871c91a8150b4
+```
+
+---
+
+# 2️⃣ Gestione Wallet
+
+## 📂 Cambiare Wallet Attivo
+
+```bash
 ./xrpwallet switch personale
+```
 
-Nella TUI (--tui) naviga con ↑/↓ e premi Enter. Nel Web (--gui) clicca sul wallet nella lista.
+### TUI
 
-📋 Lista Wallet Salvati
-bash
+* ↑ ↓ per navigare
+* **Invio** per selezionare
 
+### Web GUI
+
+Seleziona il wallet direttamente dalla lista.
+
+---
+
+## 📋 Elenco Wallet Salvati
+
+```bash
 ./xrpwallet list-wallets
+```
 
-Output:
-text
+Output di esempio:
 
+```text
 📂 WALLET SALVATI
-#   Nome          Crypto  Rete    Indirizzo
-▶  1. personale    XRP    mainnet r...
-    2. xaman        XRP    mainnet r...
-    3. stellar      XLM    testnet G...
 
-🗑️ Eliminare un Wallet
-bash
+#   Nome          Crypto   Rete      Indirizzo
 
+▶ 1. personale    XRP      Mainnet   r...
+  2. xaman        XRP      Mainnet   r...
+  3. stellar      XLM      Testnet   G...
+```
+
+---
+
+## 🗑️ Eliminare un Wallet
+
+```bash
 ./xrpwallet delete-wallet personale --force
+```
 
-3. Transazioni
+# 3️⃣ Transactions
 
-💸 Inviare XRP
-bash
+## 💸 Send XRP
 
-# Verso indirizzo
+```bash
+# Send to an XRP address
 ./xrpwallet send rLVB5EAE62zDJvLTm46aCNW3rytsjVKtrY 10
 
-# Verso contatto in rubrica
+# Send to a contact from the address book
 ./xrpwallet send mario 10
 
-# Con memo
-./xrpwallet send rLVB5EAE62zDJvLTm46aCNW3rytsjVKtrY 10 "pagamento fattura"
+# Send with a memo
+./xrpwallet send rLVB5EAE62zDJvLTm46aCNW3rytsjVKtrY 10 "payment invoice"
 
-# Da un wallet specifico
+# Send using a specific wallet
 ./xrpwallet send rLVB5EAE62zDJvLTm46aCNW3rytsjVKtrY 10 personale 0
+```
 
-💸 Inviare XLM
-bash
+---
 
-# Verso indirizzo
+## 🌟 Send XLM
+
+```bash
+# Send to a Stellar address
 ./xrpwallet send GDB7BLZWZTXYB6C2BHTHAIYVVRPMAGKD2NA35KNGD4MSMW76IQYOUOLZ 10
 
-# Con memo ID
+# Send with Memo ID
 ./xrpwallet send GDB7BLZWZTXYB6C2BHTHAIYVVRPMAGKD2NA35KNGD4MSMW76IQYOUOLZ 10 --memo-id 12345
+```
 
-💰 Fee Minime
-Rete	Fee Base	Fee per transazione
-XRP Mainnet	10 drops	0.000001 XRP
-XRP Testnet	10 drops	0.000001 XRP
-XLM Mainnet	100 stroops	0.00001 XLM
-XLM Testnet	100 stroops	0.00001 XLM
+---
 
-⚠️ Nota: Le fee XRP sono le più basse nel mondo crypto! Solo 0.000001 XRP per transazione!
+## 💰 Network Fees
 
-📜 Storico Transazioni
-bash
+| Network     |    Base Fee | Typical Transaction Fee |
+| ----------- | ----------: | ----------------------: |
+| XRP Mainnet |    10 drops |        **0.000001 XRP** |
+| XRP Testnet |    10 drops |        **0.000001 XRP** |
+| XLM Mainnet | 100 stroops |         **0.00001 XLM** |
+| XLM Testnet | 100 stroops |         **0.00001 XLM** |
 
-# Storico del wallet attivo
+> 💡 **Note**
+>
+> XRP transaction fees are among the lowest of any major blockchain, typically around **0.000001 XRP**.
+
+---
+
+## 📜 Transaction History
+
+```bash
+# History of the active wallet
 ./xrpwallet history
 
-# Storico di un indirizzo specifico
+# History of a specific address
 ./xrpwallet history rLVB5EAE62zDJvLTm46aCNW3rytsjVKtrY
 
-# Con limite
+# Show only the latest 20 transactions
 ./xrpwallet history --limit 20
+```
 
-Output:
-text
+Example output:
 
+```text
 ┌────┬─────────────────────┬────────────┬──────────────────┬────────────┬────────────────────────────────────────────┐
-│ #  │ Data/Ora            │ Tipo       │ Importo          │ Fee        │ Da/A                                        │
+│ #  │ Date & Time         │ Type       │ Amount           │ Fee        │ From / To                                  │
 ├────┼─────────────────────┼────────────┼──────────────────┼────────────┼────────────────────────────────────────────┤
-│ 1  │ 2026-07-21 14:23:57 │ RICEVUTO   │ 10.000000 XRP    │ 0.000001   │ Da: rLVB5EAE62zDJvLTm46aCNW3rytsjVKtrY    │
-│ 2  │ 2026-07-21 10:15:32 │ INVIATO    │ 5.000000 XRP     │ 0.000001   │ A: rBKbetm51vuQQfg4Yo8fvweRya7gedcr9J    │
+│ 1  │ 2026-07-21 14:23:57 │ RECEIVED   │ 10.000000 XRP    │ 0.000001   │ From: rLVB5EAE62zDJvLTm46aCNW3rytsjVKtrY    │
+│ 2  │ 2026-07-21 10:15:32 │ SENT       │ 5.000000 XRP     │ 0.000001   │ To:   rBKbetm51vuQQfg4Yo8fvweRya7gedcr9J    │
 └────┴─────────────────────┴────────────┴──────────────────┴────────────┴────────────────────────────────────────────┘
+```
 
-4. Reti
+---
 
-🌐 Mainnet (Produzione)
-bash
+# 4️⃣ Networks
 
+## 🌐 Mainnet (Production)
+
+```bash
 ./xrpwallet --network mainnet
+```
 
-⚠️ ATTENZIONE: Mainnet usa XRP VERI! Fai attenzione!
+> ⚠️ **Warning**
+>
+> Mainnet uses **real XRP/XLM**. Transactions are irreversible.
 
-🧪 Testnet (Sviluppo)
-bash
+---
 
+## 🧪 Testnet
+
+```bash
 ./xrpwallet --network testnet
-./xrpwallet faucet  # Ottieni XRP di test
 
-Testnet usa XRP FINTI per testare senza rischi.
+./xrpwallet faucet
+```
 
-🛠️ Devnet (Sviluppo Avanzato)
-bash
+The Testnet provides free test coins for development and experimentation without risking real funds.
 
+---
+
+## 🛠️ Devnet
+
+```bash
 ./xrpwallet --network devnet
+```
 
-Devnet è per sviluppatori che testano nuove funzionalità.
-5. Interfacce
+Devnet is intended for developers testing experimental XRPL features.
 
-🖥️ CLI (Command Line Interface)
-bash
+---
 
-./xrpwallet                  # Default
-./xrpwallet wallet MEW       # Con comando
+# 5️⃣ User Interfaces
+
+## 🖥️ Command Line Interface (CLI)
+
+```bash
+./xrpwallet
+
+./xrpwallet wallet MEW
+
 ./xrpwallet balance
+```
 
-🎨 TUI (Terminal User Interface)
-bash
+---
 
+## 🎨 Terminal User Interface (TUI)
+
+```bash
 ./xrpwallet --tui
+```
 
-Comandi TUI:
+### Keyboard Shortcuts
 
-    ↑/↓ - Naviga wallet
+| Key   | Action                |
+| ----- | --------------------- |
+| ↑ / ↓ | Navigate wallets      |
+| Enter | Select wallet         |
+| **i** | Wallet information    |
+| **b** | Show balance          |
+| **h** | Transaction history   |
+| **t** | Send transaction      |
+| **r** | Address book          |
+| **w** | Wallet management     |
+| **c** | Switch cryptocurrency |
+| **q** | Quit                  |
 
-    Enter - Seleziona wallet
+---
 
-    i - Info wallet
+## 🌐 Web Interface
 
-    b - Saldo
-
-    h - Storico
-
-    t - Invia
-
-    r - Rubrica
-
-    w - Gestione wallet
-
-    c - Cambia crypto
-
-    q - Esci
-
-🌐 Web (GUI)
-bash
-
+```bash
 ./xrpwallet --gui
+
 ./xrpwallet --gui --port 8080
+
 ./xrpwallet --gui --host 0.0.0.0
+```
 
-Login: admin / admin123 (cambia la password al primo accesso!)
-6. Rubrica Contatti
+### Default Login
 
-➕ Aggiungi Contatto
-bash
+```text
+Username: admin
+Password: admin123
+```
 
+> ⚠️ **Security Notice**
+>
+> Change the default administrator password after your first login.
+# 6️⃣ Address Book
+
+## ➕ Add a Contact
+
+```bash
 ./xrpwallet contact-add mario rLVB5EAE62zDJvLTm46aCNW3rytsjVKtrY
-./xrpwallet contact-add mario rLVB5EAE62zDJvLTm46aCNW3rytsjVKtrY "Fornitore"
-./xrpwallet contact-add mario rLVB5EAE62zDJvLTm46aCNW3rytsjVKtrY cliente 0 "XRP mainnet"
 
-📋 Lista Contatti
-bash
+./xrpwallet contact-add mario rLVB5EAE62zDJvLTm46aCNW3rytsjVKtrY "Supplier"
 
+./xrpwallet contact-add mario rLVB5EAE62zDJvLTm46aCNW3rytsjVKtrY cliente 0 "XRP Mainnet"
+```
+
+---
+
+## 📋 List Contacts
+
+```bash
 ./xrpwallet contact-list
+```
 
-Output:
-text
+Example output:
 
-📒 RUBRICA
-Nome            Indirizzo                                     Crypto Rete    Note
-mario           rLVB5EAE62zDJvLTm46aCNW3rytsjVKtrY           XRP    mainnet Fornitore
+```text
+📒 ADDRESS BOOK
 
-🗑️ Elimina Contatto
-bash
+Name            Address                                      Crypto  Network   Notes
+------------------------------------------------------------------------------------------
+mario           rLVB5EAE62zDJvLTm46aCNW3rytsjVKtrY            XRP     Mainnet   Supplier
+```
 
+---
+
+## 🗑️ Delete a Contact
+
+```bash
 ./xrpwallet contact-delete mario
+```
 
-7. QR Code per Ricevere
+---
 
-Nella Web GUI (--gui) vai su "Ricevi" per vedere il QR Code. Clicca "Scarica PNG" per salvarlo.
+# 7️⃣ Receive Payments with QR Codes
 
-Funzionalità:
+The Web Interface automatically generates a QR Code for every wallet.
 
-    QR Code generato automaticamente
+Navigate to:
 
-    Copia indirizzo negli appunti
+> **Receive**
 
-    Link diretto all'esploratore
+Available features:
 
-    Visualizza saldo e rete
+* ✅ Automatic QR Code generation
+* ✅ Copy address to clipboard
+* ✅ Download QR Code as PNG
+* ✅ Direct blockchain explorer link
+* ✅ Display wallet balance
+* ✅ Display current network
 
-8. Esploratori Integrati
-Rete	XRP	XLM
-Mainnet	XRPScan	Stellar Expert
-Testnet	XRPL Testnet	Stellar Testnet
+---
 
-I link vengono generati automaticamente nello storico e nella sezione "Ricevi".
-📁 Struttura Dati
-text
+# 8️⃣ Integrated Blockchain Explorers
 
+| Network | XRP                   | Stellar                  |
+| ------- | --------------------- | ------------------------ |
+| Mainnet | XRPScan               | Stellar Expert           |
+| Testnet | XRPL Testnet Explorer | Stellar Testnet Explorer |
+
+Explorer links are automatically available from:
+
+* Transaction History
+* Wallet Details
+* Receive Page
+
+---
+
+# 📁 Data Directory
+
+All wallet data is stored locally.
+
+```text
 ~/.xrpwallet/
-├── wallets/               # Wallet salvati
+│
+├── wallets/
 │   ├── personale.json
 │   ├── xaman.json
 │   └── stellar.json
-├── wallet_data.json       # Wallet attivo
-├── rubrica.json           # Contatti
-├── active_wallet.txt      # Wallet corrente
-└── web_config.json        # Configurazione web
+│
+├── wallet_data.json
+├── rubrica.json
+├── active_wallet.txt
+└── web_config.json
+```
 
-🔧 Sviluppo
+| File                | Description                 |
+| ------------------- | --------------------------- |
+| `wallets/`          | Saved wallets               |
+| `wallet_data.json`  | Current wallet information  |
+| `rubrica.json`      | Address book                |
+| `active_wallet.txt` | Active wallet               |
+| `web_config.json`   | Web interface configuration |
 
-Clona il repository
-bash
+---
 
+# 🔧 Development
+
+## Clone the Repository
+
+```bash
 git clone https://github.com/argo79/XRPwallet.git
+
 cd XRPwallet
+```
 
-Installa in modalità sviluppo
-bash
+---
 
+## Install in Development Mode
+
+```bash
 pip install -e .
+```
 
-Build eseguibile
-bash
+---
 
+## Build Standalone Executables
+
+```bash
 ./prepare_build.sh
+
 ./build_xrpwallet_linux.sh
+
 ./build_all.sh
+```
 
-Test
-bash
+---
 
+## Run Tests
+
+```bash
 xrpwallet --version
+
 xrpwallet --tui
+
 xrpwallet --gui --port 5000
+```
 
-📊 Dipendenze
+---
 
-Python
+# 📦 Dependencies
 
-    xrpl-py - XRP Ledger
+## Python
 
-    stellar-sdk - Stellar Network
+* `xrpl-py` — XRP Ledger support
+* `stellar-sdk` — Stellar Network support
+* `flask` — Web interface
+* `qrcode` — QR Code generation
+* `mnemonic` — BIP39 mnemonic phrases
+* `bip32` — HD wallet derivation
+* `cryptography` — Cryptographic primitives
+* `ecdsa` — Digital signatures
+* `base58` — Base58 encoding
 
-    flask - Web interface
+---
 
-    qrcode - QR Code generation
+## Node.js
 
-    mnemonic - BIP39 seed phrases
+Used only for Xaman Secret Numbers support.
 
-    bip32 - Hierarchical wallets
+* `xrpl-secret-numbers`
 
-    cryptography - Security
+---
 
-    ecdsa - Signatures
+# 🗺️ Roadmap
 
-    base58 - Encoding
+## ✅ Completed
 
-Node.js (per numeri Xaman)
+* Multi-wallet support
+* XRP support
+* Stellar (XLM) support
+* Command Line Interface (CLI)
+* Terminal User Interface (TUI)
+* Web Interface
+* Address Book
+* QR Code generation
+* Transaction History
+* Ultra-low transaction fees
+* Xaman Secret Numbers
+* Mainnet / Testnet / Devnet support
 
-    xrpl-secret-numbers - Xaman secret numbers
+---
 
-🗺️ Roadmap
+## 🚧 In Progress
 
-✅ Completato
+* Multi-signature wallets
+* Encrypted backups
+* CSV tax reports
+* Built-in exchange
+* Push notifications
 
-    Supporto XRP e XLM
+---
 
-    CLI, TUI e Web
+## 🔮 Planned Features
 
-    Multi-wallet
+* Flutter / React Native mobile app
+* Hardware wallet integration
+* DeFi support
+* NFT viewer
+* Additional blockchain support
 
-    Rubrica contatti
+---
 
-    QR Code
+# 🤝 Contributing
 
-    Storico transazioni
+Contributions are welcome!
 
-    Fee minime (0.000001 XRP)
+1. Fork the repository
+2. Create a feature branch
 
-    Numeri Xaman
+```bash
+git checkout -b feature/my-feature
+```
 
-    Mainnet/Testnet/Devnet
+3. Commit your changes
 
-🚧 In Sviluppo
+```bash
+git commit -m "Add awesome feature"
+```
 
-    Multi-sig
+4. Push your branch
 
-    Backup criptato
+```bash
+git push origin feature/my-feature
+```
 
-    Report fiscale (CSV)
+5. Open a Pull Request
 
-    Exchange integrato
+---
 
-    Notifiche push
+# 📄 License
 
-📝 Futuro
+Released under the **MIT License**.
 
-    App mobile (Flutter/React Native)
+Copyright © 2024–2026 **Arg0net**
 
-    Hardware wallet support
+---
 
-    DeFi integration
+# 🙏 Credits
 
-    NFT viewer
+* **Author:** Arg0net
+* **XRP Ledger:** XRPL Foundation
+* **Stellar:** Stellar Development Foundation
 
-🤝 Contributi
+Inspired by:
 
-I contributi sono benvenuti!
+* Xaman Wallet
+* XRP Toolkit
 
-    Fai un fork del progetto
+---
 
-    Crea un branch (git checkout -b feature/nuova-funzione)
+# 📞 Contact
 
-    Commit (git commit -m 'Aggiunta nuova funzione')
+* GitHub: **argo79/XRPwallet**
+* Issues: GitHub Issues page
 
-    Push (git push origin feature/nuova-funzione)
+---
 
-    Apri una Pull Request
+# ⭐ Support the Project
 
-📄 Licenza
+If you enjoy this project, you can help by:
 
-MIT License - Copyright (c) 2024 Arg0net
-🙏 Crediti
+* ⭐ Starring the repository
+* 🐞 Reporting bugs
+* 💡 Suggesting new features
+* 📝 Improving the documentation
+* 💰 Donating XRP or XLM
 
-    Autore: Arg0net
+### Donation Addresses
 
-    XRP Ledger: XRPL Foundation
+**XRP**
 
-    Stellar: Stellar Foundation
+```text
+rBKbetm51vuQQfg4Yo8fvweRya7gedcr9J
+```
 
-    Ispirato da: Xaman Wallet, XRP Toolkit
+**XLM**
 
-📞 Contatti
+```text
+GAHIVF4DGY6YAB42P6OTXYNQWROIPHJ2HGE4WLWNMYPPFBDYF3QI2ZNW
+```
 
-    GitHub: argo79/XRPwallet
+---
 
-    Issues: Segnala problema
+<div align="center">
 
-⭐ Supporta il Progetto
+### ❤️ Built with love for the XRP Ledger & Stellar Community
 
-    ⭐ Mettere una stella su GitHub
+**If you like this project, don't forget to give it a ⭐ on GitHub!**
 
-    🐛 Segnalare bug
+</div>
 
-    💡 Suggerire nuove funzionalità
-
-    📝 Scrivere documentazione
-
-    💰 Donare XRP/XLM
-
-Indirizzi Donazione:
-
-    XRP: rBKbetm51vuQQfg4Yo8fvweRya7gedcr9J
-
-    XLM: GAHIVF4DGY6YAB42P6OTXYNQWROIPHJ2HGE4WLWNMYPPFBDYF3QI2ZNW
-
-<div align="center"> Built with ❤️ on the XRP Ledger &amp; Stellar </div>
