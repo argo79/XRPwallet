@@ -6,6 +6,10 @@ set -e
 echo "📦 BUILD DESKTOP CON ICONA"
 echo "=========================="
 
+# Versione
+VERSION="1.1.0"
+APP_NAME="xrpwallet-desktop-${VERSION}"
+
 # 🔑 VERIFICA ICONE
 ICON_FILE=""
 if [ -f "icon.ico" ]; then
@@ -48,6 +52,16 @@ if [ ! -d "icons" ]; then
 fi
 echo "✅ Cartella icons trovata"
 
+# Pulisci solo il file con lo stesso nome
+if [ -f "dist/${APP_NAME}" ]; then
+    rm -f "dist/${APP_NAME}"
+    echo "🧹 Rimosso vecchio ${APP_NAME}"
+fi
+if [ -L "dist/xrpwallet-desktop" ]; then
+    rm -f "dist/xrpwallet-desktop"
+    echo "🧹 Rimosso vecchio link xrpwallet-desktop"
+fi
+
 # 🔧 TROVA UPX
 UPX_OPTS=""
 if command -v upx &> /dev/null; then
@@ -57,11 +71,11 @@ if command -v upx &> /dev/null; then
 fi
 
 # 🔨 BUILD CON ICONA
-echo "🔨 Building XRPWallet..."
+echo "🔨 Building ${APP_NAME}..."
 
 pyinstaller \
     --onefile \
-    --name "XRPWallet" \
+    --name "${APP_NAME}" \
     --icon "$ICON_FILE" \
     --strip \
     $UPX_OPTS \
@@ -108,15 +122,15 @@ pyinstaller \
     ui_desktop.py
 
 # ✅ Verifica
-if [ -f "dist/XRPWallet" ]; then
-    SIZE=$(du -h dist/XRPWallet | cut -f1)
+if [ -f "dist/${APP_NAME}" ]; then
+    SIZE=$(du -h "dist/${APP_NAME}" | cut -f1)
     echo ""
     echo "✅ BUILD COMPLETATA!"
     echo "======================================"
-    echo "📁 dist/XRPWallet ($SIZE)"
+    echo "📁 dist/${APP_NAME} ($SIZE)"
     echo ""
     echo "🚀 Per eseguire:"
-    echo "   ./dist/XRPWallet"
+    echo "   ./dist/${APP_NAME}"
     echo "   oppure doppio clic sul file!"
     echo ""
     echo "🖼️  L'icona è integrata!"

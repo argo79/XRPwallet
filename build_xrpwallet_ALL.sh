@@ -11,14 +11,27 @@ echo "║     by Arg0net                                                 ║"
 echo "╚══════════════════════════════════════════════════════════════════╝"
 echo ""
 
-# Colori
+# ============================================================
+# 🔧 CONFIGURAZIONE UNICA
+# ============================================================
+
+VERSION="1.1.0"                    # 🔑 VERSIONE UNICA
+APP_NAME="xrpwallet-${VERSION}"    # Nome eseguibile con versione
+ARCHIVE_NAME="xrpwallet-linux-${VERSION}.tar.gz"
+
+# ============================================================
+# 🎨 COLORI
+# ============================================================
+
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-VERSION="1.1.0"
+# ============================================================
+# 🔍 VERIFICHE
+# ============================================================
 
 # 🔑 TROVA definitions.json
 DEF_FILE=$(find ~/blobspace/retWallet -name "definitions.json" 2>/dev/null | head -1)
@@ -48,12 +61,39 @@ if [ ! -d "icons" ]; then
 fi
 echo -e "${GREEN}✅ Cartella icons trovata${NC}"
 
-# Pulisci build precedenti
-echo -e "${YELLOW}🧹 Pulizia build precedenti...${NC}"
-rm -rf build/ dist/ *.spec
-mkdir -p dist
+# ============================================================
+# 🧹 PULIZIA (SOLO FILE CON LO STESSO NOME)
+# ============================================================
 
-# Verifica PyInstaller
+echo -e "${YELLOW}🧹 Pulizia file con lo stesso nome...${NC}"
+
+# Pulisci build
+if [ -d "build" ]; then
+    rm -rf build
+    echo "   rimosso build/"
+fi
+
+# Pulisci spec file
+rm -f *.spec 2>/dev/null || true
+
+# Pulisci solo i file con lo stesso nome in dist
+if [ -d "dist" ]; then
+    if [ -f "dist/${APP_NAME}" ]; then
+        rm -f "dist/${APP_NAME}"
+        echo "   rimosso dist/${APP_NAME}"
+    fi
+    if [ -f "dist/${ARCHIVE_NAME}" ]; then
+        rm -f "dist/${ARCHIVE_NAME}"
+        echo "   rimosso dist/${ARCHIVE_NAME}"
+    fi
+else
+    mkdir -p dist
+fi
+
+# ============================================================
+# 📦 VERIFICA DIPENDENZE
+# ============================================================
+
 echo -e "${YELLOW}🔍 Verifica PyInstaller...${NC}"
 if ! command -v pyinstaller &> /dev/null; then
     echo -e "${RED}❌ PyInstaller non trovato. Installazione...${NC}"
@@ -70,7 +110,10 @@ else
     echo -e "${YELLOW}⚠️  UPX non trovato${NC}"
 fi
 
-# CREA PUNTO DI INGRESSO UNIFICATO
+# ============================================================
+# 📝 CREA PUNTO DI INGRESSO UNIFICATO
+# ============================================================
+
 echo ""
 echo -e "${BLUE}📝 Creazione punto di ingresso unificato...${NC}"
 
@@ -83,6 +126,8 @@ Usa: xrpwallet [--cli|--tui|--web] [opzioni]
 
 import sys
 import os
+
+VERSION = "1.1.0"
 
 def main():
     if len(sys.argv) == 1:
@@ -101,7 +146,7 @@ def main():
         sys.exit(0)
     
     if '--help' in sys.argv or '-h' in sys.argv:
-        print("XRPWallet v1.1.0")
+        print(f"XRPWallet v{VERSION}")
         print("by Arg0net")
         print("")
         print("Utilizzo: xrpwallet [--cli|--tui|--web] [opzioni]")
@@ -113,7 +158,7 @@ def main():
         sys.exit(0)
     
     if '--version' in sys.argv:
-        print("XRPWallet v1.1.0")
+        print(f"XRPWallet v{VERSION}")
         sys.exit(0)
     
     if '--cli' in sys.argv:
@@ -136,13 +181,16 @@ if __name__ == "__main__":
     main()
 EOF
 
-# BUILD UNIFICATO
+# ============================================================
+# 🔨 BUILD UNIFICATO
+# ============================================================
+
 echo ""
-echo -e "${GREEN}📦 Building XRPWallet unificato...${NC}"
+echo -e "${GREEN}📦 Building ${APP_NAME}...${NC}"
 
 pyinstaller \
     --onefile \
-    --name "xrpwallet" \
+    --name "${APP_NAME}" \
     --strip \
     $UPX_OPTS \
     --exclude-module tkinter \
@@ -199,28 +247,43 @@ pyinstaller \
 # PULISCI FILE TEMPORANEO
 rm -f xrpwallet_main.py
 
-# VERIFICA BUILD
-if [ -f "dist/xrpwallet" ]; then
-    SIZE=$(du -h dist/xrpwallet | cut -f1)
+# ============================================================
+# ✅ VERIFICA BUILD
+# ============================================================
+
+if [ -f "dist/${APP_NAME}" ]; then
+    SIZE=$(du -h "dist/${APP_NAME}" | cut -f1)
     echo ""
     echo -e "${GREEN}✅ Build completata!${NC}"
     echo -e "${BLUE}📏 Dimensione: $SIZE${NC}"
     echo ""
-    echo -e "${GREEN}📁 Eseguibile: dist/xrpwallet${NC}"
+    echo -e "${GREEN}📁 Eseguibile: dist/${APP_NAME}${NC}"
 else
     echo -e "${RED}❌ Build fallita!${NC}"
     exit 1
 fi
 
-# CREA ARCHIVIO
+# ============================================================
+# 📦 CREA ARCHIVIO
+# ============================================================
+
 echo ""
 echo -e "${BLUE}📦 Creazione archivio...${NC}"
 cd dist
-tar -czvf xrpwallet-linux-${VERSION}.tar.gz xrpwallet
-echo -e "${GREEN}✅ xrpwallet-linux-${VERSION}.tar.gz${NC}"
+
+# Rimuovi archivio vecchio se esiste
+if [ -f "${ARCHIVE_NAME}" ]; then
+    rm -f "${ARCHIVE_NAME}"
+fi
+
+tar -czvf "${ARCHIVE_NAME}" "${APP_NAME}"
+echo -e "${GREEN}✅ ${ARCHIVE_NAME}${NC}"
 cd ..
 
-# CREA SCRIPT DI INSTALLAZIONE
+# ============================================================
+# 📝 CREA SCRIPT DI INSTALLAZIONE
+# ============================================================
+
 echo ""
 echo -e "${BLUE}📝 Creazione script di installazione...${NC}"
 cat > dist/install.sh << 'EOF'
@@ -228,8 +291,8 @@ cat > dist/install.sh << 'EOF'
 # install.sh - Installer XRPWallet
 echo "🚀 Installazione XRPWallet..."
 echo "============================="
-if [ -f "xrpwallet" ]; then
-    sudo cp xrpwallet /usr/local/bin/
+if [ -f "xrpwallet-1.1.0" ]; then
+    sudo cp xrpwallet-1.1.0 /usr/local/bin/xrpwallet
     sudo chmod +x /usr/local/bin/xrpwallet
     echo "✅ Installato /usr/local/bin/xrpwallet"
     echo ""
@@ -239,7 +302,7 @@ if [ -f "xrpwallet" ]; then
     echo "  xrpwallet --web   # WEB-GUI"
     echo "  xrpwallet --help  # Help"
 else
-    echo "❌ File xrpwallet non trovato!"
+    echo "❌ File xrpwallet-1.1.0 non trovato!"
     exit 1
 fi
 echo ""
@@ -247,18 +310,21 @@ echo "🎉 Installazione completata!"
 EOF
 chmod +x dist/install.sh
 
-# RIEPILOGO
+# ============================================================
+# 📊 RIEPILOGO
+# ============================================================
+
 echo ""
 echo "╔══════════════════════════════════════════════════════════════════╗"
 echo "║  ✅ BUILD COMPLETATO!                                           ║"
 echo "╚══════════════════════════════════════════════════════════════════╝"
 echo ""
-echo -e "${GREEN}📁 dist/xrpwallet (${SIZE})${NC}"
-echo -e "${GREEN}📁 dist/xrpwallet-linux-${VERSION}.tar.gz${NC}"
+echo -e "${GREEN}📁 dist/${APP_NAME} (${SIZE})${NC}"
+echo -e "${GREEN}📁 dist/${ARCHIVE_NAME}${NC}"
 echo ""
 echo -e "${YELLOW}💡 Per testare:${NC}"
-echo "  ./dist/xrpwallet --web"
-echo "  ./dist/xrpwallet --tui"
-echo "  ./dist/xrpwallet --cli help"
+echo "  ./dist/${APP_NAME} --web"
+echo "  ./dist/${APP_NAME} --tui"
+echo "  ./dist/${APP_NAME} --cli help"
 echo ""
-echo -e "${GREEN}🚀 Distribuisci: dist/xrpwallet-linux-${VERSION}.tar.gz${NC}"
+echo -e "${GREEN}🚀 Distribuisci: dist/${ARCHIVE_NAME}${NC}"

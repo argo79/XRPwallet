@@ -142,7 +142,7 @@ class DesktopWindow(QMainWindow):
         
         self.setCentralWidget(self.browser)
         
-        # 🔑 FILTRO EVENTI PER RICARICARE LA PAGINA
+        # 🔑 FILTRO EVENTI PER RICARICARE LA PAGINA (SOLO RELOAD, NON RESET)
         self.installEventFilter(self)
         
         # Crea barra di stato
@@ -165,10 +165,11 @@ class DesktopWindow(QMainWindow):
         self.start_flask_server()
     
     def eventFilter(self, obj, event):
-        """🔑 CATTURA L'ATTIVAZIONE DELLA FINESTRA"""
+        """🔑 CATTURA L'ATTIVAZIONE DELLA FINESTRA - SOLO RELOAD"""
         if event.type() == QEvent.WindowActivate:
-            print("🔄 Finestra attivata - Ricarico la pagina...")
-            self.browser.setUrl(QUrl(SERVER_URL))
+            print("🔄 Finestra attivata - Reload pagina...")
+            # 🔑 USA RELAD INVECE DI SETURL - MANTIENE LO STATO
+            self.browser.reload()
             self.status.showMessage("✅ Pagina ricaricata", 1000)
             return True
         return super().eventFilter(obj, event)
