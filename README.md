@@ -9,6 +9,12 @@
 
 ---
 
+<p align="center">
+  <img src="jpg/arg0net-logo.jpg" width="900">
+</p>
+
+---
+
 # 🚀 Features
 
 ## 💎 Multi-Currency Support
@@ -176,9 +182,7 @@ Open any wallet or transaction directly from the application.
 ## TUI
 
 ![TUI]
-<p align="center">
-  <img src="jpg/arg0net-logo.jpg" width="900">
-</p>
+
 ---
 
 ## Web Interface
